@@ -365,6 +365,34 @@ function getTextWidth(text) {
     return metrics.width;
 }
 
+async function captureScreenshot() {
+    try {
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ action: 'captureScreen' }, response => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                    return;
+                }
+                
+                if (!response) {
+                    reject(new Error('Nenhuma resposta recebida'));
+                    return;
+                }
+                
+                if (!response.success) {
+                    reject(new Error(response.error || 'Falha ao capturar screenshot'));
+                    return;
+                }
+                
+                resolve(response.imageData);
+            });
+        });
+    } catch (error) {
+        console.error('Erro ao capturar screenshot:', error);
+        return null;
+    }
+}
+
 async function addToAnki(word, translation, examples, popup) {
     const statusElement = popup.querySelector('.anki-status');
     
@@ -372,6 +400,16 @@ async function addToAnki(word, translation, examples, popup) {
         // Verifica a conexão com o Anki
         const version = await invokeAnkiConnect('version');
         console.log('Versão do AnkiConnect:', version);
+        
+        // Captura a screenshot
+        statusElement.textContent = 'Capturando screenshot...';
+        let screenshot = null;
+        try {
+            screenshot = await captureScreenshot();
+            console.log('Screenshot capturada:', screenshot ? 'Sucesso' : 'Falha');
+        } catch (error) {
+            console.warn('Erro ao capturar screenshot:', error);
+        }
         
         // Formata o conteúdo do verso com HTML
         const versoContent = `<div style="text-align: left; font-family: Arial;">
@@ -388,6 +426,8 @@ ${examples.map(example => {
     );
     return `${highlightedExample}`;
 }).join('<br><br>')}
+
+${screenshot ? `<br><br><b>Contexto:</b><br><img src="${screenshot}" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;">` : ''}
 </div>`;
         
         // Prepara a nota
