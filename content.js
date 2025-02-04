@@ -50,9 +50,34 @@ document.addEventListener('mouseover', (e) => {
     }
 });
 
-function createPopupContent() {
+function createInitialPopup() {
     const popup = document.createElement('div');
     popup.id = 'extension-word-popup';
+    popup.innerHTML = `
+        <button class="translate-button">
+            <img src="${chrome.runtime.getURL('icons/icon48.png')}" alt="Traduzir" width="24" height="24">
+        </button>
+    `;
+    
+    // Estilos para o popup inicial
+    popup.style.position = 'fixed';
+    popup.style.zIndex = '10000';
+    
+    // Adiciona evento de clique no botão de tradução
+    const translateButton = popup.querySelector('.translate-button');
+    translateButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const word = popup.dataset.selectedWord;
+        expandPopup(popup, word);
+    });
+    
+    return popup;
+}
+
+function expandPopup(popup, word) {
+    // Substitui o conteúdo do popup pelo completo
     popup.innerHTML = `
         <div class="popup-header">
             <span class="word"></span>
@@ -68,18 +93,25 @@ function createPopupContent() {
         </div>
     `;
     
-    // Adiciona estilos ao popup
-    popup.style.position = 'fixed';
+    // Adiciona os eventos e estilos do popup completo
+    setupExpandedPopup(popup);
+    
+    // Inicia o carregamento da tradução
+    showTranslation(popup, word);
+}
+
+// Função para configurar o popup expandido
+function setupExpandedPopup(popup) {
+    // Adiciona estilos ao popup expandido
     popup.style.backgroundColor = 'white';
     popup.style.border = '1px solid #ccc';
     popup.style.padding = '12px';
     popup.style.borderRadius = '8px';
     popup.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-    popup.style.zIndex = '10000';
     popup.style.maxWidth = '300px';
     popup.style.fontSize = '14px';
     
-    // Adiciona evento de clique no botão fechar
+    // Adiciona os event listeners (código existente do createPopupContent)
     const closeButton = popup.querySelector('.close-button');
     closeButton.addEventListener('click', () => {
         popup.style.display = 'none';
@@ -136,142 +168,27 @@ function createPopupContent() {
             statusElement.style.whiteSpace = 'pre-line';
         }
     });
-    
-    return popup;
 }
 
-async function getTranslationAndExamples(word) {
-    const prompt = `Para a palavra em inglês "${word}", forneça:
-1. A tradução em português
-2. 3 frases de exemplo em inglês usando esta palavra
-Responda no seguinte formato:
-Tradução: [tradução]
-Exemplos:
-1. [exemplo 1]
-2. [exemplo 2]
-3. [exemplo 3]`;
-
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${CONFIG.GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }]
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
-            throw new Error('Formato de resposta inválido da API');
-        }
-
-        return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-        console.error('Erro ao obter tradução:', error);
-        return `Erro: ${error.message}`;
-    }
-}
-
+// Modifica a função showPopup
 function showPopup(word, x, y) {
-    let popup = document.getElementById('extension-word-popup');
-    if (!popup) {
-        popup = createPopupContent();
-        document.body.appendChild(popup);
+    // Remove o popup existente se houver
+    const existingPopup = document.getElementById('extension-word-popup');
+    if (existingPopup) {
+        existingPopup.remove();
     }
     
+    // Cria um novo popup inicial
+    const popup = createInitialPopup();
+    document.body.appendChild(popup);
+    
+    // Armazena a palavra selecionada
+    popup.dataset.selectedWord = word;
+    
+    // Posiciona o popup
     popup.style.left = `${x + 10}px`;
     popup.style.top = `${y}px`;
     popup.style.display = 'block';
-    
-    // Mostra a palavra imediatamente
-    popup.querySelector('.word').textContent = word;
-    
-    // Mostra o spinner de carregamento
-    const spinner = popup.querySelector('.loading-spinner');
-    spinner.style.display = 'block';
-    
-    // Limpa conteúdo anterior
-    popup.querySelector('.translation').textContent = 'Carregando...';
-    popup.querySelector('.examples').innerHTML = '';
-    
-    // Desabilita o botão do Anki até carregar a tradução
-    const ankiButton = popup.querySelector('.add-to-anki');
-    ankiButton.disabled = true;
-    ankiButton.style.opacity = '0.5';
-    
-    // Busca a tradução e exemplos
-    getTranslationAndExamples(word).then(result => {
-        spinner.style.display = 'none';
-        
-        if (result.startsWith('Erro:')) {
-            popup.querySelector('.translation').textContent = result;
-            return;
-        }
-        
-        try {
-            // Processa o resultado
-            const lines = result.split('\n').filter(line => line.trim());
-            
-            // Procura a tradução de forma mais flexível
-            let translation = lines.find(line => line.startsWith('Tradução:'));
-            if (!translation) {
-                // Tenta encontrar a primeira linha que não é um exemplo
-                translation = lines.find(line => !line.match(/^\d\./));
-            }
-            
-            // Remove o prefixo "Tradução:" se existir
-            translation = translation.replace(/^Tradução:\s*/, '').trim();
-            
-            // Filtra os exemplos (linhas que começam com número e ponto)
-            const examples = lines.filter(line => /^\d\./.test(line));
-            
-            // Verifica se temos conteúdo válido
-            if (!translation) {
-                popup.querySelector('.translation').textContent = 'Tradução não encontrada';
-            } else {
-                popup.querySelector('.translation').textContent = translation;
-            }
-            
-            if (examples.length === 0) {
-                popup.querySelector('.examples').innerHTML = 'Exemplos não encontrados';
-            } else {
-                popup.querySelector('.examples').innerHTML = examples.join('<br>');
-            }
-            
-            // Habilita o botão do Anki apenas se tivermos uma tradução válida
-            if (translation && translation !== 'Tradução não encontrada') {
-                ankiButton.disabled = false;
-                ankiButton.style.opacity = '1';
-            }
-            
-            // Log para debug
-            console.log('Resposta processada:', {
-                original: result,
-                lines: lines,
-                translation: translation,
-                examples: examples
-            });
-            
-        } catch (error) {
-            console.error('Erro ao processar resposta:', error);
-            popup.querySelector('.translation').textContent = 'Erro ao processar resposta';
-            popup.querySelector('.examples').innerHTML = '';
-        }
-    });
-    
-    // Remove o evento de mouseleave
-    popup.onmouseleave = null;
 }
 
 // Adiciona CSS para o spinner de carregamento
@@ -386,18 +303,51 @@ style.textContent = `
     .add-to-anki:disabled {
         cursor: not-allowed;
     }
+    
+    .translate-button {
+        background: none;
+        border: none;
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 50%;
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .translate-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    
+    .translate-button img {
+        width: 24px;
+        height: 24px;
+    }
 `;
 document.head.appendChild(style);
 
 // Substitui os event listeners antigos por um novo que só fecha com o botão
 document.addEventListener('mouseup', (e) => {
-    // Se o clique foi dentro do popup, não faz nada
     const popup = document.getElementById('extension-word-popup');
+    
+    // Se o clique foi dentro do popup, não faz nada
     if (popup && popup.contains(e.target)) {
         return;
     }
     
     const selectedText = window.getSelection().toString().trim();
+    
+    // Se não há texto selecionado, remove o popup
+    if (!selectedText && popup) {
+        popup.remove();
+        return;
+    }
+    
+    // Se há texto selecionado, mostra o novo popup
     if (selectedText) {
         const selection = window.getSelection();
         const range = selection.getRangeAt(0);
@@ -538,4 +488,125 @@ async function invokeAnkiConnect(action, params = {}) {
         }
         throw error;
     }
+}
+
+async function getTranslationAndExamples(word) {
+    const prompt = `Para a palavra em inglês "${word}", forneça:
+1. A tradução em português
+2. 3 frases de exemplo em inglês usando esta palavra
+Responda no seguinte formato:
+Tradução: [tradução]
+Exemplos:
+1. [exemplo 1]
+2. [exemplo 2]
+3. [exemplo 3]`;
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${CONFIG.GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
+            throw new Error('Formato de resposta inválido da API');
+        }
+
+        return data.candidates[0].content.parts[0].text;
+    } catch (error) {
+        console.error('Erro ao obter tradução:', error);
+        return `Erro: ${error.message}`;
+    }
+}
+
+function showTranslation(popup, word) {
+    // Mostra a palavra imediatamente
+    popup.querySelector('.word').textContent = word;
+    
+    // Mostra o spinner de carregamento
+    const spinner = popup.querySelector('.loading-spinner');
+    spinner.style.display = 'block';
+    
+    // Limpa conteúdo anterior
+    popup.querySelector('.translation').textContent = 'Carregando...';
+    popup.querySelector('.examples').innerHTML = '';
+    
+    // Desabilita o botão do Anki até carregar a tradução
+    const ankiButton = popup.querySelector('.add-to-anki');
+    ankiButton.disabled = true;
+    ankiButton.style.opacity = '0.5';
+    
+    // Busca a tradução e exemplos
+    getTranslationAndExamples(word).then(result => {
+        spinner.style.display = 'none';
+        
+        if (result.startsWith('Erro:')) {
+            popup.querySelector('.translation').textContent = result;
+            return;
+        }
+        
+        try {
+            // Processa o resultado
+            const lines = result.split('\n').filter(line => line.trim());
+            
+            // Procura a tradução de forma mais flexível
+            let translation = lines.find(line => line.startsWith('Tradução:'));
+            if (!translation) {
+                // Tenta encontrar a primeira linha que não é um exemplo
+                translation = lines.find(line => !line.match(/^\d\./));
+            }
+            
+            // Remove o prefixo "Tradução:" se existir
+            translation = translation.replace(/^Tradução:\s*/, '').trim();
+            
+            // Filtra os exemplos (linhas que começam com número e ponto)
+            const examples = lines.filter(line => /^\d\./.test(line));
+            
+            // Verifica se temos conteúdo válido
+            if (!translation) {
+                popup.querySelector('.translation').textContent = 'Tradução não encontrada';
+            } else {
+                popup.querySelector('.translation').textContent = translation;
+            }
+            
+            if (examples.length === 0) {
+                popup.querySelector('.examples').innerHTML = 'Exemplos não encontrados';
+            } else {
+                popup.querySelector('.examples').innerHTML = examples.join('<br>');
+            }
+            
+            // Habilita o botão do Anki apenas se tivermos uma tradução válida
+            if (translation && translation !== 'Tradução não encontrada') {
+                ankiButton.disabled = false;
+                ankiButton.style.opacity = '1';
+            }
+            
+            // Log para debug
+            console.log('Resposta processada:', {
+                original: result,
+                lines: lines,
+                translation: translation,
+                examples: examples
+            });
+            
+        } catch (error) {
+            console.error('Erro ao processar resposta:', error);
+            popup.querySelector('.translation').textContent = 'Erro ao processar resposta';
+            popup.querySelector('.examples').innerHTML = '';
+        }
+    });
 } 
