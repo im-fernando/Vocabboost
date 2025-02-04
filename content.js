@@ -96,8 +96,51 @@ function expandPopup(popup, word) {
     // Adiciona os eventos e estilos do popup completo
     setupExpandedPopup(popup);
     
+    // Garante que o popup continue com posição fixed
+    popup.style.position = 'fixed';
+    
+    // Aguarda um instante para que o layout seja atualizado e então ajusta a posição
+    setTimeout(() => {
+        adjustExpandedPopupPosition(popup);
+    }, 100);
+    
     // Inicia o carregamento da tradução
     showTranslation(popup, word);
+}
+
+// Nova função para ajustar a posição do popup expandido
+function adjustExpandedPopupPosition(popup) {
+    // Garante que o popup está com posição fixed
+    popup.style.position = 'fixed';
+    
+    const margin = 10;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const rect = popup.getBoundingClientRect();
+    
+    let newLeft = rect.left;
+    let newTop = rect.top;
+    
+    // Se o popup ultrapassar a direita, ajusta para a esquerda
+    if (rect.right > viewportWidth - margin) {
+        newLeft = viewportWidth - rect.width - margin;
+    }
+    // Se o popup ultrapassar a esquerda, posiciona no margin
+    if (rect.left < margin) {
+        newLeft = margin;
+    }
+    
+    // Se o popup ultrapassar a parte inferior, ajusta para cima
+    if (rect.bottom > viewportHeight - margin) {
+        newTop = viewportHeight - rect.height - margin;
+    }
+    // Se o popup ultrapassar o topo, posiciona com margem mínima
+    if (rect.top < margin) {
+        newTop = margin;
+    }
+    
+    popup.style.left = newLeft + "px";
+    popup.style.top = newTop + "px";
 }
 
 // Função para configurar o popup expandido
@@ -666,6 +709,8 @@ function showTranslation(popup, word) {
         
         if (result.startsWith('Erro:')) {
             popup.querySelector('.translation').textContent = result;
+            // Reposiciona o popup mesmo em caso de erro
+            adjustExpandedPopupPosition(popup);
             return;
         }
         
@@ -712,11 +757,12 @@ function showTranslation(popup, word) {
                 translation: translation,
                 examples: examples
             });
-            
         } catch (error) {
             console.error('Erro ao processar resposta:', error);
             popup.querySelector('.translation').textContent = 'Erro ao processar resposta';
             popup.querySelector('.examples').innerHTML = '';
         }
+        // Reposiciona o popup após a tradução (ou erro) já ter atualizado seu conteúdo
+        adjustExpandedPopupPosition(popup);
     });
 } 
