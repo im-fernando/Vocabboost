@@ -23,27 +23,54 @@ document.addEventListener('mouseover', (e) => {
         range.setStart(e.target, 0);
         range.setEnd(e.target, e.target.textContent.length);
         
-        // Obtém a palavra sob o cursor
+        // Obtém o texto sob o cursor
         const text = e.target.textContent;
         const rect = e.target.getBoundingClientRect();
         
         // Calcula a posição relativa do mouse dentro do elemento
         const x = e.clientX - rect.left;
-        const words = text.split(/\s+/);
-        let currentPosition = 0;
         
-        // Encontra a palavra específica sob o cursor
-        for (let word of words) {
-            const wordStart = text.indexOf(word, currentPosition);
-            const wordEnd = wordStart + word.length;
-            const wordRect = getTextWidth(text.substring(0, wordStart));
+        // Modificação para suportar frases
+        const phrases = text.split(/[.!?]+/).map(phrase => phrase.trim()).filter(Boolean);
+        const words = text.split(/\s+/);
+        
+        // Tenta encontrar primeiro uma frase, depois uma palavra
+        let selectedText = '';
+        let found = false;
+        
+        // Procura por frases
+        for (let phrase of phrases) {
+            const phraseStart = text.indexOf(phrase);
+            const phraseWidth = getTextWidth(phrase);
+            const phraseRect = getTextWidth(text.substring(0, phraseStart));
             
-            if (x >= wordRect && x <= wordRect + getTextWidth(word)) {
-                showPopup(word, e.clientX, e.clientY);
+            if (x >= phraseRect && x <= phraseRect + phraseWidth) {
+                selectedText = phrase;
+                found = true;
                 break;
             }
-            
-            currentPosition = wordEnd;
+        }
+        
+        // Se não encontrou frase, procura por palavras
+        if (!found) {
+            let currentPosition = 0;
+            for (let word of words) {
+                const wordStart = text.indexOf(word, currentPosition);
+                const wordEnd = wordStart + word.length;
+                const wordRect = getTextWidth(text.substring(0, wordStart));
+                
+                if (x >= wordRect && x <= wordRect + getTextWidth(word)) {
+                    selectedText = word;
+                    found = true;
+                    break;
+                }
+                
+                currentPosition = wordEnd;
+            }
+        }
+        
+        if (found && selectedText) {
+            showPopup(selectedText.trim(), e.clientX, e.clientY);
         }
     } catch (error) {
         // Ignora erros de seleção
@@ -643,10 +670,10 @@ async function invokeAnkiConnect(action, params = {}) {
     }
 }
 
-async function getTranslationAndExamples(word) {
-    const prompt = `Para a palavra em inglês "${word}", forneça:
+async function getTranslationAndExamples(text) {
+    const prompt = `Para o texto em inglês "${text}", forneça:
 1. A tradução em português
-2. 3 frases de exemplo em inglês usando esta palavra
+2. 3 frases de exemplo em inglês usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}
 Responda no seguinte formato:
 Tradução: [tradução]
 Exemplos:

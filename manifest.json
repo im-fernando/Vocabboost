@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Minha Extensão",
+    "name": "VocabBoost - Tradutor e Anki",
     "version": "1.0",
-    "description": "Descrição da minha extensão",
+    "description": "Aprenda inglês enquanto navega! Traduza palavras instantaneamente, crie flashcards no Anki com exemplos e imagens do contexto.",
     "permissions": [
       "activeTab",
       "scripting",
