@@ -367,7 +367,19 @@ function getTextWidth(text) {
 
 async function captureScreenshot() {
     try {
-        return new Promise((resolve, reject) => {
+        // Guarda o popup e sua posição atual
+        const popup = document.getElementById('extension-word-popup');
+        const wasVisible = popup.style.display !== 'none';
+        const originalDisplay = popup.style.display;
+        
+        // Esconde o popup temporariamente
+        popup.style.display = 'none';
+        
+        // Pequeno delay para garantir que o popup sumiu da tela
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Captura a screenshot
+        const screenshot = await new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({ action: 'captureScreen' }, response => {
                 if (chrome.runtime.lastError) {
                     reject(new Error(chrome.runtime.lastError.message));
@@ -387,12 +399,70 @@ async function captureScreenshot() {
                 resolve(response.imageData);
             });
         });
+        
+        // Restaura a visibilidade do popup
+        if (wasVisible) {
+            popup.style.display = originalDisplay;
+        }
+        
+        return screenshot;
     } catch (error) {
         console.error('Erro ao capturar screenshot:', error);
+        // Garante que o popup será restaurado mesmo em caso de erro
+        const popup = document.getElementById('extension-word-popup');
+        if (popup) {
+            popup.style.display = 'block';
+        }
         return null;
     }
 }
 
+// Função para gerar áudio de uma frase
+async function generateAudio(text) {
+    return new Promise((resolve, reject) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9; // Velocidade um pouco mais lenta para melhor compreensão
+        
+        // Escolhe uma voz feminina em inglês
+        const voices = window.speechSynthesis.getVoices();
+        const englishVoice = voices.find(voice => 
+            voice.lang.includes('en') && voice.name.includes('Female')
+        ) || voices.find(voice => voice.lang.includes('en'));
+        
+        if (englishVoice) {
+            utterance.voice = englishVoice;
+        }
+
+        // Cria um MediaRecorder para capturar o áudio
+        const audioContext = new AudioContext();
+        const mediaStreamDest = audioContext.createMediaStreamDestination();
+        const mediaRecorder = new MediaRecorder(mediaStreamDest.stream);
+        const audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = () => {
+                resolve(reader.result); // Retorna o áudio em base64
+            };
+        };
+
+        mediaRecorder.start();
+        window.speechSynthesis.speak(utterance);
+
+        utterance.onend = () => {
+            mediaRecorder.stop();
+        };
+    });
+}
+
+// Modifica a função addToAnki para incluir áudio
 async function addToAnki(word, translation, examples, popup) {
     const statusElement = popup.querySelector('.anki-status');
     
