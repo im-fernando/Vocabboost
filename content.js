@@ -674,8 +674,8 @@ async function addToAnki(word, translation, examples, popup) {
             case 'ja':
                 deckName = 'Vocabulário Japonês';
                 break;
-            case 'pt':
-                deckName = 'Vocabulário Português';
+            case 'es':
+                deckName = 'Vocabulário Espanhol';
                 break;
             case 'en':
             default:
@@ -807,23 +807,42 @@ async function invokeAnkiConnect(action, params = {}) {
 }
 
 async function getTranslationAndExamples(text) {
-    // Obtém a API key das configurações
-    const result = await chrome.storage.sync.get(['geminiApiKey']);
+    // Obtém a API key e o idioma selecionado das configurações
+    const result = await chrome.storage.sync.get(['geminiApiKey', 'selectedLanguage']);
     if (!result.geminiApiKey) {
         return 'Erro: API key não configurada. Por favor, configure nas opções da extensão.';
     }
-    
-    const prompt = `Para o texto em inglês "${text}", forneça:
-    1. A tradução em português
-    2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}
+
+    // Define o prompt baseado no idioma
+    let prompt;
+    switch(result.selectedLanguage) {
+        case 'ja':
+            prompt = `Para o texto em japonês "${text}", forneça:
+            1. A tradução em português
+            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            break;
+        case 'es':
+            prompt = `Para o texto em espanhol "${text}", forneça:
+            1. A tradução em português
+            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            break;
+        case 'en':
+        default:
+            prompt = `Para o texto em inglês "${text}", forneça:
+            1. A tradução em português
+            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            break;
+    }
+
+    prompt += `
     
     Responda EXATAMENTE neste formato:
     Tradução: [tradução em português]
     
     Exemplos:
-    1. [frase em inglês] (tradução em português)
-    2. [frase em inglês] (tradução em português)
-    3. [frase em inglês] (tradução em português)
+    1. [frase no idioma original] (tradução em português)
+    2. [frase no idioma original] (tradução em português)
+    3. [frase no idioma original] (tradução em português)
     
     Importante: Sempre inclua a tradução em português entre parênteses após cada exemplo.`;
 
