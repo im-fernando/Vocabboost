@@ -118,6 +118,12 @@ function expandPopup(popup, word) {
             <button class="add-to-anki">Adicionar ao Anki</button>
             <span class="anki-status"></span>
         </div>
+        <div class="api-key-error" style="display: none;">
+            <p style="color: #e74c3c; margin-bottom: 10px;">API key não configurada!</p>
+            <button class="open-options" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                Configurar API Key
+            </button>
+        </div>
     `;
     
     // Adiciona os eventos e estilos do popup completo
@@ -172,17 +178,85 @@ function adjustExpandedPopupPosition(popup) {
 
 // Função para configurar o popup expandido
 function setupExpandedPopup(popup) {
-    // Adiciona estilos ao popup expandido
-    popup.style.backgroundColor = 'white';
-    popup.style.border = '1px solid #ccc';
-    popup.style.padding = '12px';
-    popup.style.borderRadius = '8px';
-    popup.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-    popup.style.maxWidth = '300px';
-    popup.style.fontSize = '14px';
-    
-    // Adiciona os event listeners (código existente do createPopupContent)
+    // Estilos base do popup
+    Object.assign(popup.style, {
+        backgroundColor: 'white',
+        border: '1px solid #ddd',
+        padding: '15px',
+        borderRadius: '10px',
+        boxShadow: '0 3px 15px rgba(0,0,0,0.2)',
+        maxWidth: '350px',
+        fontSize: '14px',
+        fontFamily: "'Segoe UI', Arial, sans-serif"
+    });
+
+    // Estilos do cabeçalho
+    const header = popup.querySelector('.popup-header');
+    Object.assign(header.style, {
+        display: 'flex',
+        alignItems: 'center',
+        marginBottom: '15px'
+    });
+
+    // Estilos da palavra
+    const word = popup.querySelector('.word');
+    Object.assign(word.style, {
+        fontSize: '18px',
+        fontWeight: 'bold',
+        color: '#333',
+        flexGrow: '1'
+    });
+
+    // Estilos do botão fechar
     const closeButton = popup.querySelector('.close-button');
+    Object.assign(closeButton.style, {
+        marginLeft: 'auto',
+        fontSize: '20px',
+        color: '#aaa',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer'
+    });
+
+    // Estilos da tradução
+    const translation = popup.querySelector('.translation');
+    Object.assign(translation.style, {
+        backgroundColor: '#f9f9f9',
+        borderLeft: '4px solid #3498db',
+        padding: '10px',
+        marginBottom: '15px',
+        color: '#333'
+    });
+
+    // Estilos dos exemplos
+    const examples = popup.querySelector('.examples');
+    Object.assign(examples.style, {
+        marginBottom: '15px'
+    });
+
+    // Estilos dos controles do Anki
+    const ankiControls = popup.querySelector('.anki-controls');
+    Object.assign(ankiControls.style, {
+        textAlign: 'center',
+        marginTop: '15px'
+    });
+
+    // Estilos dos botões do Anki
+    const buttons = ankiControls.querySelectorAll('button');
+    buttons.forEach(button => {
+        Object.assign(button.style, {
+            margin: '0 5px',
+            backgroundColor: '#3498db',
+            color: 'white',
+            border: 'none',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '13px'
+        });
+    });
+
+    // Adiciona os event listeners (código existente do createPopupContent)
     closeButton.addEventListener('click', () => {
         popup.style.display = 'none';
     });
@@ -237,6 +311,12 @@ function setupExpandedPopup(popup) {
             statusElement.style.color = '#e74c3c';
             statusElement.style.whiteSpace = 'pre-line';
         }
+    });
+
+    // Adiciona evento ao botão de configuração
+    const openOptionsButton = popup.querySelector('.open-options');
+    openOptionsButton.addEventListener('click', () => {
+        chrome.runtime.sendMessage({ action: 'openOptions' });
     });
 }
 
@@ -671,18 +751,24 @@ async function invokeAnkiConnect(action, params = {}) {
 }
 
 async function getTranslationAndExamples(text) {
+    // Obtém a API key das configurações
+    const result = await chrome.storage.sync.get(['geminiApiKey']);
+    if (!result.geminiApiKey) {
+        return 'Erro: API key não configurada. Por favor, configure nas opções da extensão.';
+    }
+    
     const prompt = `Para o texto em inglês "${text}", forneça:
-1. A tradução em português
-2. 3 frases de exemplo em inglês usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}
-Responda no seguinte formato:
-Tradução: [tradução]
-Exemplos:
-1. [exemplo 1]
-2. [exemplo 2]
-3. [exemplo 3]`;
+    1. A tradução em português
+    2. 3 frases de exemplo em inglês usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}
+    Responda no seguinte formato:
+    Tradução: [tradução]
+    Exemplos:
+    1. [exemplo 1]
+    2. [exemplo 2]
+    3. [exemplo 3]`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${CONFIG.GEMINI_API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${result.geminiApiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -734,6 +820,27 @@ function showTranslation(popup, word) {
     getTranslationAndExamples(word).then(result => {
         spinner.style.display = 'none';
         
+        // Se for erro de API key não configurada
+        if (result === 'Erro: API key não configurada. Por favor, configure nas opções da extensão.') {
+            // Esconde os elementos normais
+            popup.querySelector('.translation').textContent = '';
+            popup.querySelector('.examples').innerHTML = '';
+            popup.querySelector('.anki-controls').style.display = 'none';
+            
+            // Mostra o erro de API key
+            const apiKeyError = popup.querySelector('.api-key-error');
+            apiKeyError.style.display = 'block';
+            
+            // Adiciona evento ao botão de configuração
+            popup.querySelector('.open-options').addEventListener('click', () => {
+                chrome.tabs.create({
+                    url: 'chrome-extension://' + chrome.runtime.id + '/options.html'
+                });
+            });
+            
+            return;
+        }
+
         if (result.startsWith('Erro:')) {
             popup.querySelector('.translation').textContent = result;
             // Reposiciona o popup mesmo em caso de erro
@@ -768,7 +875,31 @@ function showTranslation(popup, word) {
             if (examples.length === 0) {
                 popup.querySelector('.examples').innerHTML = 'Exemplos não encontrados';
             } else {
-                popup.querySelector('.examples').innerHTML = examples.join('<br>');
+                popup.querySelector('.examples').innerHTML = examples.map(example => {
+                    // Separa a parte em inglês da tradução (entre parênteses)
+                    const parts = example.split(/\(([^)]+)\)/);
+                    const englishText = parts[0].trim();
+                    const portugueseText = parts[1] ? parts[1].trim() : '';
+
+                    // Destaca a palavra/frase pesquisada
+                    const highlightedEnglish = englishText.replace(
+                        new RegExp(word, 'gi'),
+                        match => `<span style="font-weight: bold; color: #3498db;">${match}</span>`
+                    );
+
+                    return `
+                        <div style="margin-bottom: 10px; padding: 8px; border: 1px solid #ececec; border-radius: 8px; background-color: #fafafa;">
+                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 5px;">
+                                ${highlightedEnglish}
+                            </div>
+                            ${portugueseText ? `
+                                <div style="color: #555; font-size: 13px; margin-top: 5px; padding-left: 10px; border-left: 2px solid #e0e0e0;">
+                                    ${portugueseText}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
             }
             
             // Habilita o botão do Anki apenas se tivermos uma tradução válida

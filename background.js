@@ -62,4 +62,8 @@ chrome.runtime.onInstalled.addListener(() => {
         
         return true; // Mantém a conexão aberta para resposta assíncrona
     }
+
+    if (request.action === 'openOptions') {
+        chrome.runtime.openOptionsPage();
+    }
   });

@@ -3,6 +3,10 @@
     "name": "VocabBoost - Tradutor e Anki",
     "version": "1.0",
     "description": "Aprenda inglês enquanto navega! Traduza palavras instantaneamente, crie flashcards no Anki com exemplos e imagens do contexto.",
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
+    },
     "permissions": [
       "activeTab",
       "scripting",
