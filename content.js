@@ -809,6 +809,29 @@ async function getTranslationAndExamples(text) {
     }
 }
 
+// Cache de traduções
+const translationCache = new Map();
+
+// Função para obter tradução com cache
+async function getTranslationWithCache(text) {
+    // Verifica se já existe no cache
+    if (translationCache.has(text)) {
+        console.log('Usando tradução em cache para:', text);
+        return translationCache.get(text);
+    }
+    
+    // Se não existe, busca nova tradução
+    const translation = await getTranslationAndExamples(text);
+    
+    // Salva no cache
+    if (!translation.startsWith('Erro:')) {
+        console.log('Salvando tradução no cache para:', text);
+        translationCache.set(text, translation);
+    }
+    
+    return translation;
+}
+
 function showTranslation(popup, word) {
     // Mostra a palavra imediatamente
     popup.querySelector('.word').textContent = word;
@@ -826,8 +849,8 @@ function showTranslation(popup, word) {
     ankiButton.disabled = true;
     ankiButton.style.opacity = '0.5';
     
-    // Busca a tradução e exemplos
-    getTranslationAndExamples(word).then(result => {
+    // Busca a tradução e exemplos (usando cache)
+    getTranslationWithCache(word).then(result => {
         spinner.style.display = 'none';
         
         // Se for erro de API key não configurada
