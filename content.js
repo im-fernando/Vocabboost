@@ -815,9 +815,12 @@ const translationCache = new Map();
 // Função para obter tradução com cache
 async function getTranslationWithCache(text) {
     // Verifica se já existe no cache
-    if (translationCache.has(text)) {
+    const result = await chrome.storage.local.get(['translationCache']);
+    const cache = result.translationCache || {};
+    
+    if (cache[text]) {
         console.log('Usando tradução em cache para:', text);
-        return translationCache.get(text);
+        return cache[text];
     }
     
     // Se não existe, busca nova tradução
@@ -826,7 +829,8 @@ async function getTranslationWithCache(text) {
     // Salva no cache
     if (!translation.startsWith('Erro:')) {
         console.log('Salvando tradução no cache para:', text);
-        translationCache.set(text, translation);
+        cache[text] = translation;
+        await chrome.storage.local.set({ translationCache: cache });
     }
     
     return translation;
