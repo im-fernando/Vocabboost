@@ -1,4 +1,5 @@
 let isShiftPressed = false;
+let debounceTimer;
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Shift') {
@@ -12,7 +13,8 @@ document.addEventListener('keyup', (e) => {
     }
 });
 
-document.addEventListener('mouseover', (e) => {
+// Função que lida com o mouseover
+function handleMouseOver(e) {
     if (!isShiftPressed) return;
     
     const selection = window.getSelection();
@@ -75,6 +77,14 @@ document.addEventListener('mouseover', (e) => {
     } catch (error) {
         // Ignora erros de seleção
     }
+}
+
+// Adiciona o evento mouseover com debounce
+document.addEventListener('mouseover', (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        handleMouseOver(e);
+    }, 100); // 100ms de delay
 });
 
 function createInitialPopup() {
