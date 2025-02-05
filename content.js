@@ -887,9 +887,42 @@ async function getTranslationWithCache(text) {
     return translation;
 }
 
-function showTranslation(popup, word) {
+async function showTranslation(popup, word) {
     // Mostra a palavra imediatamente
-    popup.querySelector('.word').textContent = word;
+    const wordElement = popup.querySelector('.word');
+    wordElement.textContent = word;
+    
+    // Verifica se é japonês e tem kanji
+    const selectedLanguage = await chrome.storage.sync.get('selectedLanguage').then(result => result.selectedLanguage || 'en');
+    if (selectedLanguage === 'ja' && hasKanji(word)) {
+        try {
+            const { geminiApiKey } = await chrome.storage.sync.get('geminiApiKey');
+            if (geminiApiKey) {
+                const reading = await getKanjiReading(word, geminiApiKey);
+                if (reading) {
+                    // Processa cada caractere individualmente
+                    const chars = Array.from(word);
+                    const readings = Array.from(reading);
+                    let rubyHtml = '';
+                    let readingIndex = 0;
+
+                    for (let char of chars) {
+                        if (isKanji(char)) {
+                            // Se for kanji, adiciona com ruby
+                            rubyHtml += `<ruby>${char}<rt style="font-size: 0.7em;">${readings[readingIndex] || ''}</rt></ruby>`;
+                            readingIndex++;
+                        } else {
+                            // Se não for kanji, adiciona sem ruby
+                            rubyHtml += char;
+                        }
+                    }
+                    wordElement.innerHTML = rubyHtml;
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao obter leitura do kanji:', error);
+        }
+    }
     
     // Mostra o spinner de carregamento
     const spinner = popup.querySelector('.loading-spinner');
@@ -1016,4 +1049,61 @@ function showTranslation(popup, word) {
             adjustExpandedPopupPosition(popup);
         });
     });
+}
+
+// Função para verificar se há kanji no texto
+function hasKanji(text) {
+    return /[\u4e00-\u9faf\u3400-\u4dbf]/.test(text);
+}
+
+// Função específica para verificar se um único caractere é kanji
+function isKanji(char) {
+    return /[\u4e00-\u9faf\u3400-\u4dbf]/.test(char);
+}
+
+// Função para obter a leitura do kanji usando o Gemini
+async function getKanjiReading(text, apiKey) {
+    try {
+        if (!apiKey) return null;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `Você é um especialista em japonês. Para o texto "${text}", forneça APENAS a leitura em hiragana dos kanjis, sem nenhuma explicação ou outros caracteres. Por exemplo:
+                        - Se o input for "漢字", responda apenas "かんじ"
+                        - Se o input for "お金", responda apenas "かね" (apenas a leitura do kanji 金)
+                        - Se o input for "すし", não responda nada (pois não há kanji)
+                        Responda apenas com hiragana, sem espaços ou outros caracteres.`
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.1,
+                    maxOutputTokens: 100
+                }
+            })
+        });
+
+        if (!response.ok) {
+            console.error('Erro na API:', response.status, await response.text());
+            return null;
+        }
+
+        const data = await response.json();
+        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+            const reading = data.candidates[0].content.parts[0].text.trim();
+            if (/^[\u3040-\u309f\s]+$/.test(reading)) {
+                console.log('Leitura obtida:', reading);
+                return reading;
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Erro ao obter leitura:', error);
+        return null;
+    }
 } 
