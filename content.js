@@ -769,13 +769,17 @@ async function getTranslationAndExamples(text) {
     
     const prompt = `Para o texto em inglês "${text}", forneça:
     1. A tradução em português
-    2. 3 frases de exemplo em inglês usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}
-    Responda no seguinte formato:
-    Tradução: [tradução]
+    2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}
+    
+    Responda EXATAMENTE neste formato:
+    Tradução: [tradução em português]
+    
     Exemplos:
-    1. [exemplo 1]
-    2. [exemplo 2]
-    3. [exemplo 3]`;
+    1. [frase em inglês] (tradução em português)
+    2. [frase em inglês] (tradução em português)
+    3. [frase em inglês] (tradução em português)
+    
+    Importante: Sempre inclua a tradução em português entre parênteses após cada exemplo.`;
 
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${result.geminiApiKey}`, {
@@ -788,7 +792,12 @@ async function getTranslationAndExamples(text) {
                     parts: [{
                         text: prompt
                     }]
-                }]
+                }],
+                generationConfig: {
+                    temperature: 0.3,  // Reduz a aleatoriedade para respostas mais consistentes
+                    topK: 1,
+                    topP: 1
+                }
             })
         });
 
