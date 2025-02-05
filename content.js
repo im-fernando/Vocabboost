@@ -683,9 +683,13 @@ async function addToAnki(word, translation, examples, popup) {
                 break;
         }
         
+        // Pega o elemento word com o furigana se existir
+        const wordElement = popup.querySelector('.word');
+        const wordHtml = wordElement.innerHTML; // Isso vai incluir as tags ruby se existirem
+        
         // Formata o conteúdo do verso com HTML
         const versoContent = `<div style="text-align: left; font-family: Arial;">
-<b>${word}</b><br><br>
+<div style="font-size: 1.2em;">${wordHtml}</div><br>
 
 ${translation}<br><br>
 
