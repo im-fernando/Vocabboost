@@ -4,20 +4,45 @@
     <meta charset="UTF-8">
     <title>VocabBoost - Configurações</title>
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #2c3e50;
+            --border-color: #bdc3c7;
+            --input-bg: #ffffff;
+            --api-info-bg: #f8f9fa;
+            --api-info-border: #3498db;
+            --link-color: #3498db;
+            --instructions-color: #666;
+        }
+        
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --border-color: #404040;
+            --input-bg: #2d2d2d;
+            --api-info-bg: #2d2d2d;
+            --api-info-border: #2980b9;
+            --link-color: #5dade2;
+            --instructions-color: #b0b0b0;
+        }
+        
         body {
             padding: 20px;
             font-family: Arial, sans-serif;
             max-width: 600px;
             margin: 0 auto;
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
         .container {
-            background-color: #fff;
+            background-color: var(--bg-color);
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
         }
         h1 {
-            color: #2c3e50;
+            color: var(--text-color);
             margin-bottom: 20px;
         }
         .form-group {
@@ -26,14 +51,16 @@
         label {
             display: block;
             margin-bottom: 5px;
-            color: #34495e;
+            color: var(--text-color);
         }
         input[type="text"] {
             width: 100%;
             padding: 8px;
-            border: 1px solid #bdc3c7;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
             font-size: 14px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
         button {
             background-color: #3498db;
@@ -62,15 +89,16 @@
         .api-info {
             margin: 10px 0;
             padding: 15px;
-            background-color: #f8f9fa;
+            background-color: var(--api-info-bg);
             border-radius: 4px;
-            border-left: 4px solid #3498db;
+            border-left: 4px solid var(--api-info-border);
         }
         .api-info p {
             margin: 0 0 10px 0;
+            color: var(--text-color);
         }
         .api-info a {
-            color: #3498db;
+            color: var(--link-color);
             text-decoration: none;
         }
         .api-info a:hover {
@@ -79,10 +107,55 @@
         .instructions {
             margin: 0;
             padding-left: 20px;
-            color: #666;
+            color: var(--instructions-color);
         }
         .instructions li {
             margin: 5px 0;
+        }
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 34px;
+            margin-left: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #3498db;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
         }
     </style>
 </head>
@@ -104,6 +177,15 @@
                 </ul>
             </div>
             <input type="text" id="apiKey" placeholder="Cole sua API key aqui">
+        </div>
+        <div class="form-group">
+            <label class="toggle-label">
+                <span>Modo Escuro</span>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="darkMode">
+                    <span class="slider"></span>
+                </div>
+            </label>
         </div>
         <button id="save">Salvar</button>
         <div id="status" class="status" style="display: none;"></div>

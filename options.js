@@ -1,14 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Carrega a API key salva
-    chrome.storage.sync.get(['geminiApiKey'], (result) => {
+    // Carrega as configurações salvas
+    chrome.storage.sync.get(['geminiApiKey', 'darkMode'], (result) => {
         if (result.geminiApiKey) {
             document.getElementById('apiKey').value = result.geminiApiKey;
         }
+        if (result.darkMode) {
+            document.getElementById('darkMode').checked = result.darkMode;
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
     });
 
-    // Salva a API key quando o botão for clicado
+    // Salva as configurações quando o botão for clicado
     document.getElementById('save').addEventListener('click', () => {
         const apiKey = document.getElementById('apiKey').value.trim();
+        const darkMode = document.getElementById('darkMode').checked;
         const status = document.getElementById('status');
         
         if (!apiKey) {
@@ -16,9 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        chrome.storage.sync.set({ geminiApiKey: apiKey }, () => {
+        chrome.storage.sync.set({ 
+            geminiApiKey: apiKey,
+            darkMode: darkMode
+        }, () => {
             showStatus('Configurações salvas com sucesso!', 'success');
         });
+    });
+    
+    // Atualiza o tema quando o toggle é alterado
+    document.getElementById('darkMode').addEventListener('change', (e) => {
+        const isDark = e.target.checked;
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     });
 });
 

@@ -186,147 +186,173 @@ function adjustExpandedPopupPosition(popup) {
     popup.style.top = newTop + "px";
 }
 
+// Função para obter o tema atual
+function getTheme(isDark) {
+    return {
+        bg: isDark ? '#1a1a1a' : 'white',
+        text: isDark ? '#e0e0e0' : '#333',
+        border: isDark ? '#404040' : '#ddd',
+        highlight: isDark ? '#2980b9' : '#3498db',
+        secondary: isDark ? '#2d2d2d' : '#f9f9f9',
+        boxBg: isDark ? '#2d2d2d' : '#f9f9f9',
+        exampleBg: isDark ? '#262626' : '#fafafa',
+        exampleBorder: isDark ? '#404040' : '#ececec',
+        exampleText: isDark ? '#e0e0e0' : '#2c3e50',
+        translationText: isDark ? '#b0b0b0' : '#555'
+    };
+}
+
 // Função para configurar o popup expandido
 function setupExpandedPopup(popup) {
-    // Estilos base do popup
-    Object.assign(popup.style, {
-        backgroundColor: 'white',
-        border: '1px solid #ddd',
-        padding: '15px',
-        borderRadius: '10px',
-        boxShadow: '0 3px 15px rgba(0,0,0,0.2)',
-        maxWidth: '350px',
-        fontSize: '14px',
-        fontFamily: "'Segoe UI', Arial, sans-serif"
-    });
-
-    // Estilos do cabeçalho
-    const header = popup.querySelector('.popup-header');
-    Object.assign(header.style, {
-        display: 'flex',
-        alignItems: 'center',
-        marginBottom: '15px'
-    });
-
-    // Estilos da palavra
-    const word = popup.querySelector('.word');
-    Object.assign(word.style, {
-        fontSize: '18px',
-        fontWeight: 'bold',
-        color: '#333',
-        flexGrow: '1'
-    });
-
-    // Estilos do botão fechar
-    const closeButton = popup.querySelector('.close-button');
-    Object.assign(closeButton.style, {
-        marginLeft: 'auto',
-        fontSize: '20px',
-        color: '#aaa',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer'
-    });
-
-    // Estilos da tradução
-    const translation = popup.querySelector('.translation');
-    Object.assign(translation.style, {
-        backgroundColor: '#f9f9f9',
-        borderLeft: '4px solid #3498db',
-        padding: '10px',
-        marginBottom: '15px',
-        color: '#333'
-    });
-
-    // Estilos dos exemplos
-    const examples = popup.querySelector('.examples');
-    Object.assign(examples.style, {
-        marginBottom: '15px'
-    });
-
-    // Estilos dos controles do Anki
-    const ankiControls = popup.querySelector('.anki-controls');
-    Object.assign(ankiControls.style, {
-        textAlign: 'center',
-        marginTop: '15px'
-    });
-
-    // Estilos dos botões do Anki
-    const buttons = ankiControls.querySelectorAll('button');
-    buttons.forEach(button => {
-        Object.assign(button.style, {
-            margin: '0 5px',
-            backgroundColor: '#3498db',
-            color: 'white',
-            border: 'none',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '13px'
+    // Obtém a configuração do tema
+    chrome.storage.sync.get(['darkMode'], (result) => {
+        const isDark = result.darkMode;
+        const theme = getTheme(isDark);
+        
+        // Estilos base do popup
+        Object.assign(popup.style, {
+            backgroundColor: theme.bg,
+            border: `1px solid ${theme.border}`,
+            padding: '15px',
+            borderRadius: '10px',
+            boxShadow: '0 3px 15px rgba(0,0,0,0.2)',
+            maxWidth: '350px',
+            fontSize: '14px',
+            fontFamily: "'Segoe UI', Arial, sans-serif",
+            color: theme.text
         });
-    });
 
-    // Adiciona os event listeners (código existente do createPopupContent)
-    closeButton.addEventListener('click', () => {
-        popup.style.display = 'none';
-    });
-    
-    // Adiciona evento de clique no botão do Anki
-    const ankiButton = popup.querySelector('.add-to-anki');
-    ankiButton.addEventListener('click', async (e) => {
-        // Previne qualquer comportamento padrão
-        e.preventDefault();
-        e.stopPropagation();
+        // Estilos do cabeçalho
+        const header = popup.querySelector('.popup-header');
+        Object.assign(header.style, {
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '15px'
+        });
+
+        // Estilos da palavra
+        const word = popup.querySelector('.word');
+        Object.assign(word.style, {
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: theme.text,
+            flexGrow: '1'
+        });
+
+        // Estilos do botão fechar
+        const closeButton = popup.querySelector('.close-button');
+        Object.assign(closeButton.style, {
+            marginLeft: 'auto',
+            fontSize: '20px',
+            color: isDark ? '#666' : '#aaa',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer'
+        });
+
+        // Estilos da tradução
+        const translation = popup.querySelector('.translation');
+        Object.assign(translation.style, {
+            backgroundColor: theme.boxBg,
+            borderLeft: `4px solid ${theme.highlight}`,
+            padding: '10px',
+            marginBottom: '15px',
+            color: theme.text
+        });
+
+        // Estilos dos exemplos
+        const examples = popup.querySelector('.examples');
+        Object.assign(examples.style, {
+            marginBottom: '15px',
+            color: theme.text
+        });
+
+        // Estilos dos controles do Anki
+        const ankiControls = popup.querySelector('.anki-controls');
+        Object.assign(ankiControls.style, {
+            textAlign: 'center',
+            marginTop: '15px',
+            borderTop: `1px solid ${theme.border}`,
+            paddingTop: '15px'
+        });
+
+        // Estilos dos botões do Anki
+        const buttons = ankiControls.querySelectorAll('button');
+        buttons.forEach(button => {
+            Object.assign(button.style, {
+                margin: '0 5px',
+                backgroundColor: theme.highlight,
+                color: 'white',
+                border: 'none',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px'
+            });
+        });
+
+        // Adiciona os event listeners (código existente do createPopupContent)
+        closeButton.addEventListener('click', () => {
+            popup.style.display = 'none';
+        });
         
-        const word = popup.querySelector('.word').textContent;
-        const translation = popup.querySelector('.translation').textContent;
-        const examplesHtml = popup.querySelector('.examples').innerHTML;
-        const examples = examplesHtml.split('<br>')
-            .map(example => example.trim())
-            .filter(example => example && !example.includes('Exemplos não encontrados'));
+        // Adiciona evento de clique no botão do Anki
+        const ankiButton = popup.querySelector('.add-to-anki');
+        ankiButton.addEventListener('click', async (e) => {
+            // Previne qualquer comportamento padrão
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const word = popup.querySelector('.word').textContent;
+            const translation = popup.querySelector('.translation').textContent;
+            const examplesHtml = popup.querySelector('.examples').innerHTML;
+            const examples = examplesHtml.split('<br>')
+                .map(example => example.trim())
+                .filter(example => example && !example.includes('Exemplos não encontrados'));
+            
+            if (!translation || translation === 'Carregando...' || translation.includes('Erro')) {
+                const statusElement = popup.querySelector('.anki-status');
+                statusElement.textContent = 'Erro: Aguarde a tradução carregar';
+                statusElement.style.color = '#e74c3c';
+                return;
+            }
+            
+            // Desabilita o botão enquanto adiciona
+            ankiButton.disabled = true;
+            ankiButton.style.opacity = '0.5';
+            
+            try {
+                await addToAnki(word, translation, examples, popup);
+            } finally {
+                // Reabilita o botão após terminar
+                ankiButton.disabled = false;
+                ankiButton.style.opacity = '1';
+            }
+        });
         
-        if (!translation || translation === 'Carregando...' || translation.includes('Erro')) {
+        // Adiciona evento para testar conexão
+        const testButton = popup.querySelector('.test-anki');
+        testButton.addEventListener('click', async () => {
             const statusElement = popup.querySelector('.anki-status');
-            statusElement.textContent = 'Erro: Aguarde a tradução carregar';
-            statusElement.style.color = '#e74c3c';
-            return;
-        }
-        
-        // Desabilita o botão enquanto adiciona
-        ankiButton.disabled = true;
-        ankiButton.style.opacity = '0.5';
-        
-        try {
-            await addToAnki(word, translation, examples, popup);
-        } finally {
-            // Reabilita o botão após terminar
-            ankiButton.disabled = false;
-            ankiButton.style.opacity = '1';
-        }
-    });
-    
-    // Adiciona evento para testar conexão
-    const testButton = popup.querySelector('.test-anki');
-    testButton.addEventListener('click', async () => {
-        const statusElement = popup.querySelector('.anki-status');
-        statusElement.textContent = 'Testando conexão...';
-        statusElement.style.color = '#7f8c8d';
-        
-        try {
-            const version = await invokeAnkiConnect('version');
-            statusElement.textContent = `Conexão OK! Versão AnkiConnect: ${version}`;
-            statusElement.style.color = '#27ae60';
-        } catch (error) {
-            statusElement.textContent = error.message;
-            statusElement.style.color = '#e74c3c';
-            statusElement.style.whiteSpace = 'pre-line';
-        }
-    });
+            statusElement.textContent = 'Testando conexão...';
+            statusElement.style.color = '#7f8c8d';
+            
+            try {
+                const version = await invokeAnkiConnect('version');
+                statusElement.textContent = `Conexão OK! Versão AnkiConnect: ${version}`;
+                statusElement.style.color = '#27ae60';
+            } catch (error) {
+                statusElement.textContent = error.message;
+                statusElement.style.color = '#e74c3c';
+                statusElement.style.whiteSpace = 'pre-line';
+            }
+        });
 
-    // Adiciona evento ao botão de configuração
-    const openOptionsButton = popup.querySelector('.open-options');
-    openOptionsButton.addEventListener('click', () => {
-        chrome.runtime.sendMessage({ action: 'openOptions' });
+        // Adiciona evento ao botão de configuração
+        const openOptionsButton = popup.querySelector('.open-options');
+        openOptionsButton.addEventListener('click', () => {
+            chrome.runtime.sendMessage({ action: 'openOptions' });
+        });
     });
 }
 
@@ -864,109 +890,114 @@ function showTranslation(popup, word) {
     
     // Busca a tradução e exemplos (usando cache)
     getTranslationWithCache(word).then(result => {
-        spinner.style.display = 'none';
-        
-        // Se for erro de API key não configurada
-        if (result === 'Erro: API key não configurada. Por favor, configure nas opções da extensão.') {
-            // Esconde os elementos normais
-            popup.querySelector('.translation').textContent = '';
-            popup.querySelector('.examples').innerHTML = '';
-            popup.querySelector('.anki-controls').style.display = 'none';
+        // Obtém o tema atual
+        chrome.storage.sync.get(['darkMode'], (themeResult) => {
+            const theme = getTheme(themeResult.darkMode);
             
-            // Mostra o erro de API key
-            const apiKeyError = popup.querySelector('.api-key-error');
-            apiKeyError.style.display = 'block';
+            spinner.style.display = 'none';
             
-            // Adiciona evento ao botão de configuração
-            popup.querySelector('.open-options').addEventListener('click', () => {
-                chrome.tabs.create({
-                    url: 'chrome-extension://' + chrome.runtime.id + '/options.html'
+            // Se for erro de API key não configurada
+            if (result === 'Erro: API key não configurada. Por favor, configure nas opções da extensão.') {
+                // Esconde os elementos normais
+                popup.querySelector('.translation').textContent = '';
+                popup.querySelector('.examples').innerHTML = '';
+                popup.querySelector('.anki-controls').style.display = 'none';
+                
+                // Mostra o erro de API key
+                const apiKeyError = popup.querySelector('.api-key-error');
+                apiKeyError.style.display = 'block';
+                
+                // Adiciona evento ao botão de configuração
+                popup.querySelector('.open-options').addEventListener('click', () => {
+                    chrome.tabs.create({
+                        url: 'chrome-extension://' + chrome.runtime.id + '/options.html'
+                    });
                 });
-            });
-            
-            return;
-        }
+                
+                return;
+            }
 
-        if (result.startsWith('Erro:')) {
-            popup.querySelector('.translation').textContent = result;
-            // Reposiciona o popup mesmo em caso de erro
-            adjustExpandedPopupPosition(popup);
-            return;
-        }
-        
-        try {
-            // Processa o resultado
-            const lines = result.split('\n').filter(line => line.trim());
-            
-            // Procura a tradução de forma mais flexível
-            let translation = lines.find(line => line.startsWith('Tradução:'));
-            if (!translation) {
-                // Tenta encontrar a primeira linha que não é um exemplo
-                translation = lines.find(line => !line.match(/^\d\./));
+            if (result.startsWith('Erro:')) {
+                popup.querySelector('.translation').textContent = result;
+                // Reposiciona o popup mesmo em caso de erro
+                adjustExpandedPopupPosition(popup);
+                return;
             }
             
-            // Remove o prefixo "Tradução:" se existir
-            translation = translation.replace(/^Tradução:\s*/, '').trim();
-            
-            // Filtra os exemplos (linhas que começam com número e ponto)
-            const examples = lines.filter(line => /^\d\./.test(line));
-            
-            // Verifica se temos conteúdo válido
-            if (!translation) {
-                popup.querySelector('.translation').textContent = 'Tradução não encontrada';
-            } else {
-                popup.querySelector('.translation').textContent = translation;
-            }
-            
-            if (examples.length === 0) {
-                popup.querySelector('.examples').innerHTML = 'Exemplos não encontrados';
-            } else {
-                popup.querySelector('.examples').innerHTML = examples.map(example => {
-                    // Separa a parte em inglês da tradução (entre parênteses)
-                    const parts = example.split(/\(([^)]+)\)/);
-                    const englishText = parts[0].trim();
-                    const portugueseText = parts[1] ? parts[1].trim() : '';
+            try {
+                // Processa o resultado
+                const lines = result.split('\n').filter(line => line.trim());
+                
+                // Procura a tradução de forma mais flexível
+                let translation = lines.find(line => line.startsWith('Tradução:'));
+                if (!translation) {
+                    // Tenta encontrar a primeira linha que não é um exemplo
+                    translation = lines.find(line => !line.match(/^\d\./));
+                }
+                
+                // Remove o prefixo "Tradução:" se existir
+                translation = translation.replace(/^Tradução:\s*/, '').trim();
+                
+                // Filtra os exemplos (linhas que começam com número e ponto)
+                const examples = lines.filter(line => /^\d\./.test(line));
+                
+                // Verifica se temos conteúdo válido
+                if (!translation) {
+                    popup.querySelector('.translation').textContent = 'Tradução não encontrada';
+                } else {
+                    popup.querySelector('.translation').textContent = translation;
+                }
+                
+                if (examples.length === 0) {
+                    popup.querySelector('.examples').innerHTML = 'Exemplos não encontrados';
+                } else {
+                    popup.querySelector('.examples').innerHTML = examples.map(example => {
+                        // Separa a parte em inglês da tradução (entre parênteses)
+                        const parts = example.split(/\(([^)]+)\)/);
+                        const englishText = parts[0].trim();
+                        const portugueseText = parts[1] ? parts[1].trim() : '';
 
-                    // Destaca a palavra/frase pesquisada
-                    const highlightedEnglish = englishText.replace(
-                        new RegExp(word, 'gi'),
-                        match => `<span style="font-weight: bold; color: #3498db;">${match}</span>`
-                    );
+                        // Destaca a palavra/frase pesquisada
+                        const highlightedEnglish = englishText.replace(
+                            new RegExp(word, 'gi'),
+                            match => `<span style="font-weight: bold; color: ${theme.highlight};">${match}</span>`
+                        );
 
-                    return `
-                        <div style="margin-bottom: 10px; padding: 8px; border: 1px solid #ececec; border-radius: 8px; background-color: #fafafa;">
-                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 5px;">
-                                ${highlightedEnglish}
-                            </div>
-                            ${portugueseText ? `
-                                <div style="color: #555; font-size: 13px; margin-top: 5px; padding-left: 10px; border-left: 2px solid #e0e0e0;">
-                                    ${portugueseText}
+                        return `
+                            <div style="margin-bottom: 10px; padding: 8px; border: 1px solid ${theme.exampleBorder}; border-radius: 8px; background-color: ${theme.exampleBg};">
+                                <div style="font-weight: bold; color: ${theme.exampleText}; margin-bottom: 5px;">
+                                    ${highlightedEnglish}
                                 </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }).join('');
+                                ${portugueseText ? `
+                                    <div style="color: ${theme.translationText}; font-size: 13px; margin-top: 5px; padding-left: 10px; border-left: 2px solid ${theme.border};">
+                                        ${portugueseText}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                // Habilita o botão do Anki apenas se tivermos uma tradução válida
+                if (translation && translation !== 'Tradução não encontrada') {
+                    ankiButton.disabled = false;
+                    ankiButton.style.opacity = '1';
+                }
+                
+                // Log para debug
+                console.log('Resposta processada:', {
+                    original: result,
+                    lines: lines,
+                    translation: translation,
+                    examples: examples
+                });
+            } catch (error) {
+                console.error('Erro ao processar resposta:', error);
+                popup.querySelector('.translation').textContent = 'Erro ao processar resposta';
+                popup.querySelector('.examples').innerHTML = '';
             }
-            
-            // Habilita o botão do Anki apenas se tivermos uma tradução válida
-            if (translation && translation !== 'Tradução não encontrada') {
-                ankiButton.disabled = false;
-                ankiButton.style.opacity = '1';
-            }
-            
-            // Log para debug
-            console.log('Resposta processada:', {
-                original: result,
-                lines: lines,
-                translation: translation,
-                examples: examples
-            });
-        } catch (error) {
-            console.error('Erro ao processar resposta:', error);
-            popup.querySelector('.translation').textContent = 'Erro ao processar resposta';
-            popup.querySelector('.examples').innerHTML = '';
-        }
-        // Reposiciona o popup após a tradução (ou erro) já ter atualizado seu conteúdo
-        adjustExpandedPopupPosition(popup);
+            // Reposiciona o popup após a tradução (ou erro) já ter atualizado seu conteúdo
+            adjustExpandedPopupPosition(popup);
+        });
     });
 } 
