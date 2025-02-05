@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Carrega as configurações salvas
     chrome.storage.sync.get(['geminiApiKey', 'darkMode'], (result) => {
         if (result.geminiApiKey) {
@@ -9,6 +9,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.documentElement.setAttribute('data-theme', 'dark');
         }
     });
+
+    // Carregar a configuração de idioma salva
+    const languageSelect = document.getElementById('language-select');
+    const savedLanguage = await chrome.storage.sync.get('selectedLanguage');
+    if (savedLanguage.selectedLanguage) {
+        languageSelect.value = savedLanguage.selectedLanguage;
+    }
 
     // Salva as configurações quando o botão for clicado
     document.getElementById('save').addEventListener('click', () => {
@@ -33,6 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('darkMode').addEventListener('change', (e) => {
         const isDark = e.target.checked;
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    });
+
+    // Salvar a configuração quando alterada
+    languageSelect.addEventListener('change', async (e) => {
+        await chrome.storage.sync.set({
+            selectedLanguage: e.target.value
+        });
     });
 });
 

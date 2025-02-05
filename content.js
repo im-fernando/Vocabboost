@@ -667,6 +667,22 @@ async function addToAnki(word, translation, examples, popup) {
             console.warn('Erro ao capturar screenshot:', error);
         }
         
+        // Definindo o deck com base no idioma selecionado
+        const selectedLanguage = await chrome.storage.sync.get('selectedLanguage').then(result => result.selectedLanguage || 'en');
+        let deckName;
+        switch(selectedLanguage) {
+            case 'ja':
+                deckName = 'Vocabulário Japonês';
+                break;
+            case 'pt':
+                deckName = 'Vocabulário Português';
+                break;
+            case 'en':
+            default:
+                deckName = 'Vocabulário Inglês';
+                break;
+        }
+        
         // Formata o conteúdo do verso com HTML
         const versoContent = `<div style="text-align: left; font-family: Arial;">
 <b>${word}</b><br><br>
@@ -688,7 +704,7 @@ ${screenshot ? `<br><br><b>Contexto:</b><br><img src="${screenshot}" style="max-
         
         // Prepara a nota
         const note = {
-            deckName: "Vocabulário Inglês",
+            deckName: deckName,
             modelName: "Básico",
             fields: {
                 Frente: word,
@@ -698,17 +714,17 @@ ${screenshot ? `<br><br><b>Contexto:</b><br><img src="${screenshot}" style="max-
                 allowDuplicate: false,
                 duplicateScope: "deck"
             },
-            tags: ["chrome_extension"]
+            tags: [selectedLanguage]
         };
 
         console.log('Nota a ser adicionada:', note);
 
         // Verifica se o deck existe
         const decks = await invokeAnkiConnect('deckNames');
-        if (!decks.includes("Vocabulário Inglês")) {
+        if (!decks.includes(deckName)) {
             console.log('Criando deck...');
             await invokeAnkiConnect('createDeck', {
-                deck: "Vocabulário Inglês"
+                deck: deckName
             });
         }
 
