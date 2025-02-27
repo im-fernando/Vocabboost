@@ -305,10 +305,14 @@ function setupExpandedPopup(popup) {
             
             const word = popup.querySelector('.word').textContent;
             const translation = popup.querySelector('.translation').textContent;
-            const examplesHtml = popup.querySelector('.examples').innerHTML;
-            const examples = examplesHtml.split('<br>')
-                .map(example => example.trim())
-                .filter(example => example && !example.includes('Exemplos não encontrados'));
+            
+            // Nova forma de obter os exemplos
+            const exampleDivs = popup.querySelectorAll('.examples > div');
+            const examples = Array.from(exampleDivs).map(div => {
+                const originalText = div.querySelector('div:first-child').textContent.trim();
+                const translationText = div.querySelector('div:last-child')?.textContent.trim() || '';
+                return `${originalText} (${translationText})`;
+            }).filter(example => example && !example.includes('Exemplos não encontrados'));
             
             if (!translation || translation === 'Carregando...' || translation.includes('Erro')) {
                 const statusElement = popup.querySelector('.anki-status');
@@ -739,6 +743,10 @@ async function addToAnki(word, translation, examples, popup) {
     const statusElement = popup.querySelector('.anki-status');
     
     try {
+        // Obtém a configuração do tema
+        const { darkMode } = await chrome.storage.sync.get(['darkMode']);
+        const theme = getTheme(darkMode);
+        
         // Verifica a conexão com o Anki
         const version = await invokeAnkiConnect('version');
         console.log('Versão do AnkiConnect:', version);
@@ -763,15 +771,41 @@ async function addToAnki(word, translation, examples, popup) {
             console.warn('Erro ao capturar screenshot:', error);
         }
 
-        // Gera o áudio da palavra
-        statusElement.textContent = 'Gerando áudio...';
+        // Gera o áudio da palavra e dos exemplos
+        statusElement.textContent = 'Gerando áudios...';
         const { selectedLanguage = 'en' } = await chrome.storage.sync.get('selectedLanguage');
-        let audioBase64 = null;
+        
+        // Gera áudio da palavra principal
+        let mainAudioBase64 = null;
         try {
-            audioBase64 = await generateAudio(word, selectedLanguage);
-            console.log('Áudio gerado com sucesso');
+            mainAudioBase64 = await generateAudio(word, selectedLanguage);
+            console.log('Áudio da palavra gerado com sucesso');
         } catch (error) {
-            console.warn('Erro ao gerar áudio:', error);
+            console.warn('Erro ao gerar áudio da palavra:', error);
+        }
+
+        // Gera áudio dos exemplos
+        const exampleAudios = [];
+        for (let i = 0; i < examples.length; i++) {
+            try {
+                // Processa o exemplo da mesma forma que o popup
+                const parts = examples[i].split(/\(([^)]+)\)/);
+                const originalText = parts[0].trim().replace(/^\d+\.\s*/, ''); // Remove o número e espaços
+                
+                statusElement.textContent = `Gerando áudio para exemplo ${i + 1} de ${examples.length}...`;
+                console.log(`Gerando áudio para exemplo ${i + 1}:`, originalText);
+                
+                const audioBase64 = await generateAudio(originalText, selectedLanguage);
+                if (audioBase64) {
+                    exampleAudios.push({
+                        text: originalText,
+                        audio: audioBase64
+                    });
+                    console.log(`Áudio do exemplo ${i + 1} gerado com sucesso:`, originalText);
+                }
+            } catch (error) {
+                console.warn(`Erro ao gerar áudio do exemplo ${i + 1}:`, error);
+            }
         }
         
         // Define o nome do deck baseado no idioma
@@ -814,34 +848,70 @@ async function addToAnki(word, translation, examples, popup) {
         // Pega o elemento word com o furigana se existir
         const wordElement = popup.querySelector('.word');
         const wordHtml = wordElement.innerHTML;
-        
-        // Formata o conteúdo do verso com HTML
-        const versoContent = `<div style="text-align: left; font-family: Arial;">
-<div style="font-size: 1.2em;">${wordHtml}</div>
-${audioBase64 ? '[sound:' + word + '.mp3]<br>' : ''}
-<br>
-${translation}<br><br>
 
-<b>Exemplos:</b><br><br>
-${examples.map(example => {
-    const highlightedExample = example.replace(
-        new RegExp(word, 'gi'),
-        match => `<b>${match}</b>`
-    );
-    return `${highlightedExample}`;
-}).join('<br><br>')}
-
-${screenshot ? `<br><br><b>Contexto:</b><br><img src="${screenshot}" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;">` : ''}
-</div>`;
-
-        // Se temos áudio, primeiro vamos criar o arquivo de mídia
-        if (audioBase64) {
-            const storeMediaResult = await invokeAnkiConnect('storeMediaFile', {
+        // Armazena os arquivos de áudio no Anki
+        if (mainAudioBase64) {
+            await invokeAnkiConnect('storeMediaFile', {
                 filename: word + '.mp3',
-                data: audioBase64
+                data: mainAudioBase64
             });
-            console.log('Resultado do armazenamento do áudio:', storeMediaResult);
+            console.log('Áudio principal armazenado');
         }
+
+        // Armazena os áudios dos exemplos
+        for (let i = 0; i < exampleAudios.length; i++) {
+            const { text, audio } = exampleAudios[i];
+            const filename = `${word}_example${i + 1}.mp3`;
+            await invokeAnkiConnect('storeMediaFile', {
+                filename: filename,
+                data: audio
+            });
+            console.log(`Áudio do exemplo ${i + 1} armazenado:`, text);
+        }
+        
+        // Formata o conteúdo do verso com HTML e áudios
+        const versoContent = `<div style="text-align: left; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: ${theme.text};">
+            <div style="font-size: 18px; font-weight: bold; margin-bottom: 15px; color: ${theme.text};">${wordHtml}</div>
+            ${mainAudioBase64 ? '[sound:' + word + '.mp3]<br>' : ''}
+            
+            <div style="background-color: ${theme.boxBg}; border-left: 4px solid ${theme.highlight}; padding: 10px; margin: 15px 0; color: ${theme.text};">
+                ${translation}
+            </div>
+
+            <div style="margin-top: 20px;">
+                <b style="font-size: 16px; color: ${theme.text};">Exemplos:</b><br><br>
+                ${examples.map((example, index) => {
+                    const parts = example.split(/\(([^)]+)\)/);
+                    const originalText = parts[0].trim();
+                    const translatedText = parts[1] ? parts[1].trim() : '';
+                    const highlightedExample = originalText.replace(
+                        new RegExp(word, 'gi'),
+                        match => `<b style="color: ${theme.highlight};">${match}</b>`
+                    );
+                    
+                    return `
+                        <div style="margin-bottom: 15px; padding: 10px; border: 1px solid ${theme.border}; border-radius: 8px; background-color: ${theme.exampleBg};">
+                            <div style="font-weight: bold; color: ${theme.text}; margin-bottom: 5px;">
+                                ${highlightedExample}
+                                ${exampleAudios[index] ? `<br>[sound:${word}_example${index + 1}.mp3]` : ''}
+                            </div>
+                            ${translatedText ? `
+                                <div style="color: ${theme.translationText}; margin-top: 5px; padding-left: 10px; border-left: 2px solid ${theme.border}; font-size: 13px;">
+                                    ${translatedText}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('\n')}
+            </div>
+
+            ${screenshot ? `
+                <div style="margin-top: 20px;">
+                    <b style="font-size: 16px; color: ${theme.text};">Contexto:</b><br>
+                    <img src="${screenshot}" style="max-width: 100%; height: auto; border: 1px solid ${theme.border}; border-radius: 8px; margin-top: 10px;">
+                </div>
+            ` : ''}
+        </div>`;
         
         // Prepara a nota
         const note = {
