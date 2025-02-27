@@ -603,49 +603,135 @@ async function captureScreenshot() {
     }
 }
 
-// Função para gerar áudio de uma frase
-async function generateAudio(text) {
-    return new Promise((resolve, reject) => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.9; // Velocidade um pouco mais lenta para melhor compreensão
-        
-        // Escolhe uma voz feminina em inglês
-        const voices = window.speechSynthesis.getVoices();
-        const englishVoice = voices.find(voice => 
-            voice.lang.includes('en') && voice.name.includes('Female')
-        ) || voices.find(voice => voice.lang.includes('en'));
-        
-        if (englishVoice) {
-            utterance.voice = englishVoice;
+// Função para gerar áudio usando a ElevenLabs API
+async function generateAudio(text, language) {
+    try {
+        const { elevenLabsApiKey } = await chrome.storage.sync.get('elevenLabsApiKey');
+        if (!elevenLabsApiKey) {
+            throw new Error('API key da ElevenLabs não configurada');
         }
 
-        // Cria um MediaRecorder para capturar o áudio
-        const audioContext = new AudioContext();
-        const mediaStreamDest = audioContext.createMediaStreamDestination();
-        const mediaRecorder = new MediaRecorder(mediaStreamDest.stream);
-        const audioChunks = [];
+        // Lista de vozes russas definida no escopo correto
+        const russianVoices = [
+            'kgF5UZYTYKw2W1SfEbTX', // Alice (russo)
+            'bVMeCyTHy58xNoL34h3p', // Sasha (russo)
+            'ThT5KcBeYPX3keUQqHPh', // Ivan (russo)
+            '0wkEYGF8lPXZKZHXmxZK'  // Natasha (russo)
+        ];
 
-        mediaRecorder.ondataavailable = (event) => {
-            audioChunks.push(event.data);
-        };
+        // Seleciona a voz apropriada baseado no idioma
+        let voiceId;
+        switch(language) {
+            case 'ja':
+                voiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam (japonês)
+                break;
+            case 'es':
+                voiceId = '29vD33N1CtxCmqQRPOHJ'; // Pedro (espanhol)
+                break;
+            case 'fr':
+                voiceId = 'XB0fDUnXU5powFXDhCwa'; // Charlotte (francês)
+                break;
+            case 'de':
+                voiceId = 'pqHfZKP75CvOlQylNhV4'; // Hans (alemão)
+                break;
+            case 'ru':
+                voiceId = russianVoices[0]; // Começa com a primeira voz
+                break;
+            case 'en':
+            default:
+                voiceId = '21m00Tcm4TlvDq8ikWAM'; // Rachel (inglês)
+                break;
+        }
 
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        // Configurações específicas para cada idioma
+        let stability = 0.5;
+        let similarity_boost = 0.75;
+
+        // Ajustes específicos para russo
+        if (language === 'ru') {
+            stability = 0.7; // Aumenta a estabilidade para melhor pronúncia
+            similarity_boost = 0.85; // Aumenta a similaridade para manter o sotaque
+        }
+
+        console.log('Gerando áudio para:', {
+            text,
+            language,
+            voiceId,
+            stability,
+            similarity_boost
+        });
+
+        // Tenta gerar o áudio com a primeira voz
+        let response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'audio/mpeg',
+                'Content-Type': 'application/json',
+                'xi-api-key': elevenLabsApiKey
+            },
+            body: JSON.stringify({
+                text: text,
+                model_id: 'eleven_multilingual_v2',
+                voice_settings: {
+                    stability,
+                    similarity_boost
+                }
+            })
+        });
+
+        // Se a primeira voz falhar e for russo, tenta as outras vozes
+        if (!response.ok && language === 'ru') {
+            console.log('Primeira voz falhou, tentando vozes alternativas...');
+            
+            for (let i = 1; i < russianVoices.length; i++) {
+                voiceId = russianVoices[i];
+                console.log('Tentando voz alternativa:', voiceId);
+                
+                response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'audio/mpeg',
+                        'Content-Type': 'application/json',
+                        'xi-api-key': elevenLabsApiKey
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        model_id: 'eleven_multilingual_v2',
+                        voice_settings: {
+                            stability,
+                            similarity_boost
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    console.log('Voz alternativa funcionou:', voiceId);
+                    break;
+                } else {
+                    const errorData = await response.text();
+                    console.log(`Erro com voz ${voiceId}:`, errorData);
+                }
+            }
+        }
+
+        if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Erro detalhado da API ElevenLabs:', errorData);
+            throw new Error(`Erro ao gerar áudio (${response.status}): ${errorData}`);
+        }
+
+        const audioBlob = await response.blob();
+        const audioBase64 = await new Promise((resolve) => {
             const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
             reader.readAsDataURL(audioBlob);
-            reader.onloadend = () => {
-                resolve(reader.result); // Retorna o áudio em base64
-            };
-        };
+        });
 
-        mediaRecorder.start();
-        window.speechSynthesis.speak(utterance);
-
-        utterance.onend = () => {
-            mediaRecorder.stop();
-        };
-    });
+        return audioBase64;
+    } catch (error) {
+        console.error('Erro ao gerar áudio:', error);
+        throw error;
+    }
 }
 
 // Modifica a função addToAnki para incluir áudio
@@ -656,6 +742,16 @@ async function addToAnki(word, translation, examples, popup) {
         // Verifica a conexão com o Anki
         const version = await invokeAnkiConnect('version');
         console.log('Versão do AnkiConnect:', version);
+
+        // Verifica os modelos disponíveis
+        const models = await invokeAnkiConnect('modelNames');
+        console.log('Modelos disponíveis:', models);
+
+        // Verifica os campos do modelo Básico
+        const modelFields = await invokeAnkiConnect('modelFieldNames', {
+            modelName: "Básico"
+        });
+        console.log('Campos do modelo Básico:', modelFields);
         
         // Captura a screenshot
         statusElement.textContent = 'Capturando screenshot...';
@@ -666,10 +762,17 @@ async function addToAnki(word, translation, examples, popup) {
         } catch (error) {
             console.warn('Erro ao capturar screenshot:', error);
         }
-        
-        // Definindo o deck com base no idioma selecionado
+
+        // Gera o áudio da palavra
+        statusElement.textContent = 'Gerando áudio...';
         const { selectedLanguage = 'en' } = await chrome.storage.sync.get('selectedLanguage');
-        console.log('Idioma selecionado:', selectedLanguage);
+        let audioBase64 = null;
+        try {
+            audioBase64 = await generateAudio(word, selectedLanguage);
+            console.log('Áudio gerado com sucesso');
+        } catch (error) {
+            console.warn('Erro ao gerar áudio:', error);
+        }
         
         // Define o nome do deck baseado no idioma
         let deckName;
@@ -701,7 +804,6 @@ async function addToAnki(word, translation, examples, popup) {
         const existingDecks = await invokeAnkiConnect('deckNames');
         console.log('Decks existentes:', existingDecks);
         
-        // Cria o deck se não existir
         if (!existingDecks.includes(deckName)) {
             console.log('Criando deck:', deckName);
             await invokeAnkiConnect('createDeck', {
@@ -711,17 +813,17 @@ async function addToAnki(word, translation, examples, popup) {
 
         // Pega o elemento word com o furigana se existir
         const wordElement = popup.querySelector('.word');
-        const wordHtml = wordElement.innerHTML; // Isso vai incluir as tags ruby se existirem
+        const wordHtml = wordElement.innerHTML;
         
         // Formata o conteúdo do verso com HTML
         const versoContent = `<div style="text-align: left; font-family: Arial;">
-<div style="font-size: 1.2em;">${wordHtml}</div><br>
-
+<div style="font-size: 1.2em;">${wordHtml}</div>
+${audioBase64 ? '[sound:' + word + '.mp3]<br>' : ''}
+<br>
 ${translation}<br><br>
 
 <b>Exemplos:</b><br><br>
 ${examples.map(example => {
-    // Destaca a palavra nos exemplos
     const highlightedExample = example.replace(
         new RegExp(word, 'gi'),
         match => `<b>${match}</b>`
@@ -731,6 +833,15 @@ ${examples.map(example => {
 
 ${screenshot ? `<br><br><b>Contexto:</b><br><img src="${screenshot}" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;">` : ''}
 </div>`;
+
+        // Se temos áudio, primeiro vamos criar o arquivo de mídia
+        if (audioBase64) {
+            const storeMediaResult = await invokeAnkiConnect('storeMediaFile', {
+                filename: word + '.mp3',
+                data: audioBase64
+            });
+            console.log('Resultado do armazenamento do áudio:', storeMediaResult);
+        }
         
         // Prepara a nota
         const note = {
@@ -747,26 +858,17 @@ ${screenshot ? `<br><br><b>Contexto:</b><br><img src="${screenshot}" style="max-
             tags: [selectedLanguage]
         };
 
-        console.log('Nota a ser adicionada:', note);
-
-        // Verifica se o deck existe
-        const decks = await invokeAnkiConnect('deckNames');
-        if (!decks.includes(deckName)) {
-            console.log('Criando deck...');
-            await invokeAnkiConnect('createDeck', {
-                deck: deckName
-            });
+        // Verifica se os campos da nota correspondem aos campos do modelo
+        if (!modelFields.includes('Frente') || !modelFields.includes('Verso')) {
+            // Tenta adaptar ao nome dos campos em português
+            note.fields = {
+                Front: word,
+                Back: versoContent
+            };
+            console.log('Adaptando para campos em inglês (Front/Back)');
         }
 
-        // Verifica os modelos disponíveis
-        const models = await invokeAnkiConnect('modelNames');
-        console.log('Modelos disponíveis:', models);
-
-        // Verifica os campos do modelo
-        const modelFields = await invokeAnkiConnect('modelFieldNames', {
-            modelName: "Básico"
-        });
-        console.log('Campos do modelo:', modelFields);
+        console.log('Nota a ser adicionada:', note);
 
         // Adiciona a nota
         statusElement.textContent = 'Adicionando ao Anki...';
@@ -781,6 +883,10 @@ ${screenshot ? `<br><br><b>Contexto:</b><br><img src="${screenshot}" style="max-
                 '2. O modelo "Básico" existe\n' +
                 '3. Os campos do modelo estão corretos');
         }
+
+        // Força uma sincronização
+        await invokeAnkiConnect('sync');
+        console.log('Sincronização iniciada');
 
         // Mostra sucesso
         statusElement.textContent = 'Adicionado com sucesso!';
