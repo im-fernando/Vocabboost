@@ -668,7 +668,10 @@ async function addToAnki(word, translation, examples, popup) {
         }
         
         // Definindo o deck com base no idioma selecionado
-        const selectedLanguage = await chrome.storage.sync.get('selectedLanguage').then(result => result.selectedLanguage || 'en');
+        const { selectedLanguage = 'en' } = await chrome.storage.sync.get('selectedLanguage');
+        console.log('Idioma selecionado:', selectedLanguage);
+        
+        // Define o nome do deck baseado no idioma
         let deckName;
         switch(selectedLanguage) {
             case 'ja':
@@ -677,12 +680,35 @@ async function addToAnki(word, translation, examples, popup) {
             case 'es':
                 deckName = 'Vocabulário Espanhol';
                 break;
+            case 'ru':
+                deckName = 'Vocabulário Russo';
+                break;
+            case 'fr':
+                deckName = 'Vocabulário Francês';
+                break;
+            case 'de':
+                deckName = 'Vocabulário Alemão';
+                break;
             case 'en':
             default:
                 deckName = 'Vocabulário Inglês';
                 break;
         }
         
+        console.log('Deck selecionado:', deckName);
+        
+        // Verifica se o deck existe e cria se necessário
+        const existingDecks = await invokeAnkiConnect('deckNames');
+        console.log('Decks existentes:', existingDecks);
+        
+        // Cria o deck se não existir
+        if (!existingDecks.includes(deckName)) {
+            console.log('Criando deck:', deckName);
+            await invokeAnkiConnect('createDeck', {
+                deck: deckName
+            });
+        }
+
         // Pega o elemento word com o furigana se existir
         const wordElement = popup.querySelector('.word');
         const wordHtml = wordElement.innerHTML; // Isso vai incluir as tags ruby se existirem
@@ -826,6 +852,21 @@ async function getTranslationAndExamples(text) {
             1. A tradução em português
             2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
+        case 'ru':
+            prompt = `Para o texto em russo "${text}", forneça:
+            1. A tradução em português
+            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            break;
+        case 'fr':
+            prompt = `Para o texto em francês "${text}", forneça:
+            1. A tradução em português
+            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            break;
+        case 'de':
+            prompt = `Para o texto em alemão "${text}", forneça:
+            1. A tradução em português
+            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            break;
         case 'en':
         default:
             prompt = `Para o texto em inglês "${text}", forneça:
@@ -847,7 +888,7 @@ async function getTranslationAndExamples(text) {
     Importante: Sempre inclua a tradução em português entre parênteses após cada exemplo.`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${result.geminiApiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-002:generateContent?key=${result.geminiApiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -859,26 +900,53 @@ async function getTranslationAndExamples(text) {
                     }]
                 }],
                 generationConfig: {
-                    temperature: 0.3,  // Reduz a aleatoriedade para respostas mais consistentes
+                    temperature: 0.3,
                     topK: 1,
-                    topP: 1
-                }
+                    topP: 1,
+                    maxOutputTokens: 1024,
+                    frequencyPenalty: 0.5,
+                    presencePenalty: 0.5
+                },
+                safetySettings: [
+                    {
+                        category: "HARM_CATEGORY_HARASSMENT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_HATE_SPEECH",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                    }
+                ]
             })
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.text();
+            console.error('Erro da API Gemini:', errorData);
+            throw new Error(`Erro na API (${response.status}): ${errorData}`);
         }
 
         const data = await response.json();
         
         if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
+            console.error('Resposta inesperada da API:', data);
             throw new Error('Formato de resposta inválido da API');
         }
 
         return data.candidates[0].content.parts[0].text;
     } catch (error) {
         console.error('Erro ao obter tradução:', error);
+        if (error.message.includes('API key not valid')) {
+            return 'Erro: Chave API inválida. Por favor, verifique sua chave API nas configurações.';
+        }
         return `Erro: ${error.message}`;
     }
 }

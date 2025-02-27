@@ -15,5 +15,20 @@ const SUPPORTED_LANGUAGES = {
     name: '日本語',
     // ... configurações específicas do japonês ...
   },
-  // ... outros idiomas suportados ...
+  'es': {
+    name: 'Español',
+    // ... configurações específicas do espanhol ...
+  },
+  'ru': {
+    name: 'Русский',
+    // ... configurações específicas do russo ...
+  },
+  'fr': {
+    name: 'Français',
+    // ... configurações específicas do francês ...
+  },
+  'de': {
+    name: 'Deutsch',
+    // ... configurações específicas do alemão ...
+  }
 }; 
