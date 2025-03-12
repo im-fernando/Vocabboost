@@ -1029,38 +1029,38 @@ async function getTranslationAndExamples(text) {
         case 'ja':
             prompt = `Para o texto em japonês "${text}", forneça:
             1. A tradução em português
-            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            2. 3 frases de exemplo SIMPLES E COMUNS usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
         case 'es':
             prompt = `Para o texto em espanhol "${text}", forneça:
             1. A tradução em português
-            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            2. 3 frases de exemplo SIMPLES E COMUNS usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
         case 'ru':
             prompt = `Para o texto em russo "${text}", forneça:
             1. A tradução em português
-            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            2. 3 frases de exemplo SIMPLES E COMUNS usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
         case 'fr':
             prompt = `Para o texto em francês "${text}", forneça:
             1. A tradução em português
-            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            2. 3 frases de exemplo SIMPLES E COMUNS usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
         case 'de':
             prompt = `Para o texto em alemão "${text}", forneça:
             1. A tradução em português
-            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            2. 3 frases de exemplo SIMPLES E COMUNS usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
         case 'zh':
             prompt = `Para o texto em mandarim (chinês) "${text}", forneça:
             1. A tradução em português
-            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            2. 3 frases de exemplo SIMPLES E COMUNS usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
         case 'en':
         default:
             prompt = `Para o texto em inglês "${text}", forneça:
             1. A tradução em português
-            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            2. 3 frases de exemplo SIMPLES E COMUNS usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
     }
 
@@ -1074,7 +1074,10 @@ async function getTranslationAndExamples(text) {
     2. [frase no idioma original] (tradução em português)
     3. [frase no idioma original] (tradução em português)
     
-    Importante: Sempre inclua a tradução em português entre parênteses após cada exemplo.`;
+    IMPORTANTE: 
+    - Sempre inclua a tradução em português entre parênteses após cada exemplo
+    - Os exemplos DEVEM ser frases SIMPLES, CURTAS e de uso COMUM no dia-a-dia
+    - Use vocabulário básico e estruturas gramaticais simples para que um iniciante possa entender`;
 
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-002:generateContent?key=${result.geminiApiKey}`, {
