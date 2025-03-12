@@ -831,6 +831,9 @@ async function addToAnki(word, translation, examples, popup) {
             case 'de':
                 deckName = 'Vocabulário Alemão';
                 break;
+            case 'zh':
+                deckName = 'Vocabulário Mandarim';
+                break;
             case 'en':
             default:
                 deckName = 'Vocabulário Inglês';
