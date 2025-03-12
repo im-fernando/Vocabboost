@@ -98,7 +98,7 @@ function createInitialPopup() {
     
     // Estilos para o popup inicial
     popup.style.position = 'fixed';
-    popup.style.zIndex = '10000';
+    popup.style.zIndex = '2147483647'; // Valor máximo para z-index, acima de qualquer elemento
     
     // Adiciona evento de clique no botão de tradução
     const translateButton = popup.querySelector('.translate-button');
@@ -139,8 +139,9 @@ function expandPopup(popup, word) {
     // Adiciona os eventos e estilos do popup completo
     setupExpandedPopup(popup);
     
-    // Garante que o popup continue com posição fixed
+    // Garante que o popup continue com posição fixed e z-index máximo
     popup.style.position = 'fixed';
+    popup.style.zIndex = '2147483647'; // Valor máximo de z-index
     
     // Aguarda um instante para que o layout seja atualizado e então ajusta a posição
     setTimeout(() => {
@@ -396,6 +397,10 @@ style.textContent = `
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+    }
+    
+    #extension-word-popup {
+        z-index: 2147483647 !important; /* Garante que fique acima de qualquer outro elemento */
     }
     
     .popup-header {
@@ -1043,6 +1048,11 @@ async function getTranslationAndExamples(text) {
             1. A tradução em português
             2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
             break;
+        case 'zh':
+            prompt = `Para o texto em mandarim (chinês) "${text}", forneça:
+            1. A tradução em português
+            2. 3 frases de exemplo usando ${text.split(/\s+/).length > 1 ? 'esta expressão' : 'esta palavra'}`;
+            break;
         case 'en':
         default:
             prompt = `Para o texto em inglês "${text}", forneça:
@@ -1320,12 +1330,40 @@ async function showTranslation(popup, word) {
 
 // Função para verificar se há kanji no texto
 function hasKanji(text) {
-    return /[\u4e00-\u9faf\u3400-\u4dbf]/.test(text);
+    return [...text].some(char => isKanji(char));
 }
 
 // Função específica para verificar se um único caractere é kanji
 function isKanji(char) {
-    return /[\u4e00-\u9faf\u3400-\u4dbf]/.test(char);
+    return char && (char >= '\u4e00' && char <= '\u9faf' || char >= '\u3400' && char <= '\u4dbf');
+}
+
+// Funções para caracteres chineses
+function hasChineseChars(text) {
+    return [...text].some(char => isChineseChar(char));
+}
+
+function isChineseChar(char) {
+    // Os intervalos Unicode incluem caracteres chineses (há sobreposição com kanji japonês)
+    return char && (
+        (char >= '\u4e00' && char <= '\u9fff') || // CJK Unified Ideographs
+        (char >= '\u3400' && char <= '\u4dbf') || // CJK Unified Ideographs Extension A
+        (char >= '\u20000' && char <= '\u2a6df') || // CJK Unified Ideographs Extension B
+        (char >= '\u2a700' && char <= '\u2b73f') || // CJK Unified Ideographs Extension C
+        (char >= '\u2b740' && char <= '\u2b81f') || // CJK Unified Ideographs Extension D
+        (char >= '\u2b820' && char <= '\u2ceaf') || // CJK Unified Ideographs Extension E
+        (char >= '\u2ceb0' && char <= '\u2ebef') || // CJK Unified Ideographs Extension F
+        (char >= '\u30000' && char <= '\u3134f') || // CJK Unified Ideographs Extension G
+        (char >= '\u3000' && char <= '\u303f') // CJK Symbols and Punctuation
+    );
+}
+
+// Função para detectar se o texto é provavelmente chinês
+function isChineseText(text) {
+    // Conta o número de caracteres chineses
+    const chineseCharCount = [...text].filter(char => isChineseChar(char)).length;
+    // Se pelo menos 40% dos caracteres forem chineses, consideramos que o texto está em chinês
+    return chineseCharCount / text.length > 0.4;
 }
 
 // Função para obter a leitura do kanji usando o Gemini

@@ -2,8 +2,8 @@ document.addEventListener('mouseover', function(e) {
     // Verifica se temos um elemento válido e se ele tem conteúdo
     if (!e.target || !e.target.textContent) return;
 
-    // Verifica se o elemento tem texto em japonês
-    if (isJapaneseText(e.target.textContent)) {
+    // Verifica se o elemento tem texto em japonês ou chinês
+    if (isJapaneseText(e.target.textContent) || isChineseText(e.target.textContent)) {
         // Adiciona listener para o shift
         document.addEventListener('keydown', async function(keyEvent) {
             if (keyEvent.key === 'Shift' && e.target) {
@@ -15,19 +15,27 @@ document.addEventListener('mouseover', function(e) {
                     let startPos = range.startOffset;
                     let endPos = range.startOffset;
                     
-                    while (startPos > 0 && isJapaneseChar(text[startPos - 1])) {
+                    const isJapanese = isJapaneseText(text);
+                    const isChinese = isChineseText(text);
+                    
+                    // Determina se o caractere atual é japonês ou chinês
+                    const isTargetChar = isJapanese 
+                        ? (char) => isJapaneseChar(char) 
+                        : (char) => isChineseChar(char);
+                    
+                    while (startPos > 0 && isTargetChar(text[startPos - 1])) {
                         startPos--;
                     }
                     
-                    while (endPos < text.length && isJapaneseChar(text[endPos])) {
+                    while (endPos < text.length && isTargetChar(text[endPos])) {
                         endPos++;
                     }
 
                     // Obtém a palavra selecionada
                     const selectedWord = text.substring(startPos, endPos);
                     
-                    // Verifica se há kanji na palavra
-                    if (hasKanji(selectedWord)) {
+                    // Verifica se há kanji/hanzi na palavra
+                    if ((isJapanese && hasKanji(selectedWord)) || (isChinese && hasChineseChars(selectedWord))) {
                         // Cria um elemento temporário
                         const temp = document.createElement('div');
                         temp.style.position = 'absolute';
@@ -39,8 +47,10 @@ document.addEventListener('mouseover', function(e) {
                         temp.style.borderRadius = '3px';
                         temp.style.zIndex = '10000';
                         
-                        // Adiciona a palavra com furigana
-                        const reading = await getKanjiReading(selectedWord);
+                        // Adiciona a palavra com furigana ou pinyin
+                        const reading = isJapanese 
+                            ? await getKanjiReading(selectedWord) 
+                            : await getChineseReading(selectedWord);
                         temp.innerHTML = `<ruby>${selectedWord}<rt>${reading}</rt></ruby>`;
                         
                         document.body.appendChild(temp);
@@ -87,6 +97,30 @@ function hasKanji(text) {
     return /[\u4e00-\u9faf\u3400-\u4dbf]/.test(text);
 }
 
+// Função para verificar se o texto contém caracteres chineses
+function isChineseText(text) {
+    if (!text) return false;
+    // Verifica se tem caracteres chineses
+    const chineseCount = [...text].filter(char => isChineseChar(char)).length;
+    return chineseCount / text.length > 0.4; // Se mais de 40% dos caracteres são chineses
+}
+
+// Função para verificar se um caractere específico é chinês
+function isChineseChar(char) {
+    return char && (
+        (char >= '\u4e00' && char <= '\u9fff') || // CJK Unified Ideographs
+        (char >= '\u3400' && char <= '\u4dbf') || // CJK Unified Ideographs Extension A
+        (char >= '\u3000' && char <= '\u303f') || // CJK Symbols and Punctuation
+        (char >= '\uf900' && char <= '\ufaff') || // CJK Compatibility Ideographs
+        (char >= '\uff00' && char <= '\uffef')    // Halfwidth and Fullwidth Forms
+    );
+}
+
+// Função para verificar se há caracteres chineses no texto
+function hasChineseChars(text) {
+    return [...text].some(char => isChineseChar(char));
+}
+
 // Função para obter a leitura do kanji usando o Gemini
 async function getKanjiReading(text) {
     try {
@@ -119,6 +153,42 @@ async function getKanjiReading(text) {
         return '';
     } catch (error) {
         console.error('Erro ao obter leitura:', error);
+        return '';
+    }
+}
+
+// Função para obter a leitura em pinyin do texto chinês usando o Gemini
+async function getChineseReading(text) {
+    try {
+        // Obtém a API key das configurações
+        const { apiKey } = await chrome.storage.sync.get('apiKey');
+        if (!apiKey) {
+            console.error('API Key não configurada');
+            return '';
+        }
+
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `Forneça apenas a leitura em pinyin do seguinte texto chinês (apenas a leitura em pinyin, sem explicações): ${text}`
+                    }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+            return data.candidates[0].content.parts[0].text.trim();
+        }
+        return '';
+    } catch (error) {
+        console.error('Erro ao obter leitura em pinyin:', error);
         return '';
     }
 } 

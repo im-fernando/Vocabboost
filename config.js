@@ -1,5 +1,5 @@
 const CONFIG = {
-    GEMINI_API_KEY: 'AIzaSyCbgYypbxCt8FHkj5ptN_LgrsLq8ts7ZYs'
+    GEMINI_API_KEY: ''
 };
 
 const SUPPORTED_LANGUAGES = {
@@ -30,5 +30,9 @@ const SUPPORTED_LANGUAGES = {
   'de': {
     name: 'Deutsch',
     // ... configurações específicas do alemão ...
+  },
+  'zh': {
+    name: '中文',
+    // ... configurações específicas do mandarim ...
   }
 }; 
