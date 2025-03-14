@@ -22,6 +22,19 @@ Nosso objetivo com o VocabBoost é tornar o aprendizado de idiomas acessível pa
 - Chave de API do Google Cloud (para tradução)
 - Chave de API do ElevenLabs (opcional, para síntese de voz)
 
+## 🔌 Instalando o AnkiConnect
+
+Para instalar o AnkiConnect no Anki:
+
+1. Abra o Anki
+2. Pressione `Ctrl+Shift+A` (ou `Cmd+Shift+A` no Mac) para abrir o gerenciador de add-ons
+3. Clique em "Obter Add-ons"
+4. Na janela que abrir, cole o código: `2055492159`
+5. Clique em "OK" para instalar
+6. Reinicie o Anki para que as alterações tenham efeito
+
+Após a instalação, o AnkiConnect estará rodando na porta 8765 (http://localhost:8765) e pronto para se comunicar com o VocabBoost.
+
 ## 🛠️ Instalação
 
 1. Clone este repositório ou baixe os arquivos
