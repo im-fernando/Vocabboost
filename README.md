@@ -1,82 +1,82 @@
-# VocabBoost - Translator and Anki
+# VocabBoost - Tradutor e Anki
 
-A Chrome extension that helps you learn English while browsing! Translate words instantly and create flashcards on Anki with examples and images from context.
+Uma extensão do Chrome que ajuda você a aprender inglês enquanto navega! Traduza palavras instantaneamente e crie flashcards no Anki com exemplos e imagens do contexto.
 
-## 🚀 Features
+## 🚀 Funcionalidades
 
-- Instant translation of words during browsing
-- Automatic flashcard creation on Anki
-- Contextual usage examples
-- Support for images in flashcards
-- Intuitive and easy-to-use interface
-- Integration with Anki through AnkiConnect
+- Tradução instantânea de palavras durante a navegação
+- Criação automática de flashcards no Anki
+- Exemplos de uso em contexto
+- Suporte a imagens nos flashcards
+- Interface intuitiva e fácil de usar
+- Integração com o Anki através do AnkiConnect
 
-## 📋 Prerequisites
+## 📋 Pré-requisitos
 
 - Google Chrome
-- Anki installed on your computer
-- AnkiConnect installed on Anki
-- Google Cloud API Key (for translation)
-- ElevenLabs API Key (optional, for text-to-speech)
+- Anki instalado no seu computador
+- AnkiConnect instalado no Anki
+- Chave de API do Google Cloud (para tradução)
+- Chave de API do ElevenLabs (opcional, para síntese de voz)
 
-## 🛠️ Installation
+## 🛠️ Instalação
 
-1. Clone this repository or download the files
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" in the top right corner
-4. Click on "Load unpacked" and select the project folder
-5. Configure your API keys in the extension options
+1. Clone este repositório ou baixe os arquivos
+2. Abra o Chrome e vá para `chrome://extensions/`
+3. Ative o "Modo do desenvolvedor" no canto superior direito
+4. Clique em "Carregar sem compactação" e selecione a pasta do projeto
+5. Configure suas chaves de API nas opções da extensão
 
-## ⚙️ Configuration
+## ⚙️ Configuração
 
-1. Click on the extension icon in Chrome's toolbar
-2. Go to the extension options
-3. Configure your API keys:
-   - Google Cloud API Key
-   - ElevenLabs API Key (optional)
-4. Configure the AnkiConnect URL (default: http://localhost:8765)
+1. Clique no ícone da extensão na barra de ferramentas do Chrome
+2. Vá para as opções da extensão
+3. Configure suas chaves de API:
+   - Chave de API do Google Cloud
+   - Chave de API do ElevenLabs (opcional)
+4. Configure a URL do AnkiConnect (padrão: http://localhost:8765)
 
-## 💡 How to Use
+## 💡 Como Usar
 
-1. During browsing, select any English text
-2. The translation will appear instantly
-3. To create a flashcard:
-   - Click on the extension icon
-   - Paste your word list
-   - Click on "Process Words"
-4. The flashcards will be created automatically on Anki
+1. Durante a navegação, selecione qualquer texto em inglês
+2. A tradução aparecerá instantaneamente
+3. Para criar um flashcard:
+   - Clique no ícone da extensão
+   - Cole sua lista de palavras
+   - Clique em "Processar Palavras"
+4. Os flashcards serão criados automaticamente no Anki
 
-## �� Project Structure
+## 🔧 Estrutura do Projeto
 
-- `manifest.json`: Extension configuration
-- `popup.html/js/css`: User interface
-- `content.js`: Content script for web page interaction
-- `background.js`: Service worker for background processing
-- `options.html/js`: Settings page
-- `config.js`: Global settings
-- `locales/`: Translation files
-- `icons/`: Extension icons
+- `manifest.json`: Configuração da extensão
+- `popup.html/js/css`: Interface do usuário
+- `content.js`: Script de conteúdo para interação com páginas web
+- `background.js`: Service worker para processamento em segundo plano
+- `options.html/js`: Página de configurações
+- `config.js`: Configurações globais
+- `locales/`: Arquivos de tradução
+- `icons/`: Ícones da extensão
 
-## 🤝 Contributing
+## 🤝 Contribuindo
 
-Contributions are welcome! Please feel free to:
+Contribuições são bem-vindas! Por favor, sinta-se à vontade para:
 
-1. Fork the project
-2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Fazer um fork do projeto
+2. Criar uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abrir um Pull Request
 
-## 📝 License
+## 📝 Licença
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
-## 📞 Support
+## 📞 Suporte
 
-If you encounter any issues or have suggestions, please open an issue on GitHub.
+Se você encontrar algum problema ou tiver sugestões, por favor abra uma issue no GitHub.
 
-## 🙏 Acknowledgments
+## 🙏 Agradecimentos
 
-- Anki for providing an amazing platform for learning
-- Google Cloud for providing translation services
-- ElevenLabs for providing text-to-speech services
+- Anki por fornecer uma plataforma incrível para aprendizado
+- Google Cloud por fornecer serviços de tradução
+- ElevenLabs por fornecer serviços de síntese de voz
