@@ -2,6 +2,9 @@
 
 Uma extensão do Chrome que ajuda você a aprender inglês enquanto navega! Traduza palavras instantaneamente e crie flashcards no Anki com exemplos e imagens do contexto.
 
+## 🎯 Objetivo
+Nosso objetivo com o VocabBoost é tornar o aprendizado de idiomas acessível para todos. Acreditamos que aprender uma nova língua deve ser algo prático, intuitivo e integrado ao dia a dia. Com essa extensão, queremos facilitar a imersão no inglês e ajudar usuários a expandirem seu vocabulário de forma eficiente.
+
 ## 🚀 Funcionalidades
 
 - Tradução instantânea de palavras durante a navegação
@@ -40,7 +43,7 @@ Uma extensão do Chrome que ajuda você a aprender inglês enquanto navega! Trad
 
 1. Durante a navegação, selecione qualquer texto em inglês
 2. A tradução aparecerá instantaneamente
-3. Para criar um flashcard:
+3. Para criar flashcards em massa:
    - Clique no ícone da extensão
    - Cole sua lista de palavras
    - Clique em "Processar Palavras"
@@ -63,8 +66,8 @@ Contribuições são bem-vindas! Por favor, sinta-se à vontade para:
 
 1. Fazer um fork do projeto
 2. Criar uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some feature'`)
+4. Push para a branch (`git push origin feature/feature`)
 5. Abrir um Pull Request
 
 ## 📝 Licença
