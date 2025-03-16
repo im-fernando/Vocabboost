@@ -63,6 +63,33 @@ chrome.runtime.onInstalled.addListener(() => {
         return true; // Mantém a conexão aberta para resposta assíncrona
     }
 
+    // Manipulador para solicitações de áudio do Google Translate
+    if (request.action === 'fetchAudio') {
+        fetch(request.url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro ao buscar áudio: ${response.status}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Converter o blob para base64
+                const reader = new FileReader();
+                reader.onloadend = function() {
+                    // Extrair a parte base64 da string de dados
+                    const base64data = reader.result.split(',')[1];
+                    sendResponse({ audioBase64: base64data });
+                };
+                reader.readAsDataURL(blob);
+            })
+            .catch(error => {
+                console.error('Erro ao buscar áudio:', error);
+                sendResponse({ error: error.message });
+            });
+            
+        return true; // Mantém a conexão aberta para resposta assíncrona
+    }
+
     if (request.action === 'openOptions') {
         chrome.runtime.openOptionsPage();
     }

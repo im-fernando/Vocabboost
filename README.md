@@ -11,6 +11,7 @@ Nosso objetivo com o VocabBoost é tornar o aprendizado de idiomas acessível pa
 - Criação automática de flashcards no Anki
 - Exemplos de uso em contexto
 - Suporte a imagens nos flashcards
+- Síntese de voz gratuita com Google Translate
 - Interface intuitiva e fácil de usar
 - Integração com o Anki através do AnkiConnect
 
@@ -20,7 +21,6 @@ Nosso objetivo com o VocabBoost é tornar o aprendizado de idiomas acessível pa
 - Anki instalado no seu computador
 - AnkiConnect instalado no Anki
 - Chave de API do Google Cloud (para tradução)
-- Chave de API do ElevenLabs (opcional, para síntese de voz)
 
 ## 🔌 Instalando o AnkiConnect
 
@@ -47,9 +47,7 @@ Após a instalação, o AnkiConnect estará rodando na porta 8765 (http://localh
 
 1. Clique no ícone da extensão na barra de ferramentas do Chrome
 2. Vá para as opções da extensão
-3. Configure suas chaves de API:
-   - Chave de API do Google Cloud
-   - Chave de API do ElevenLabs (opcional)
+3. Configure sua chave de API do Google Cloud
 4. Configure a URL do AnkiConnect (padrão: http://localhost:8765)
 
 ## 💡 Como Usar
@@ -95,4 +93,6 @@ Se você encontrar algum problema ou tiver sugestões, por favor abra uma issue 
 
 - Anki por fornecer uma plataforma incrível para aprendizado
 - Google Cloud por fornecer serviços de tradução
-- ElevenLabs por fornecer serviços de síntese de voz
+- Google Translate por fornecer síntese de voz gratuita
+- AnkiConnect por facilitar a integração com o Anki
+- A todos os contribuidores e usuários que ajudam a melhorar este projeto

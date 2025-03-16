@@ -612,134 +612,36 @@ async function captureScreenshot() {
     }
 }
 
-// Função para gerar áudio usando a ElevenLabs API
+// Função para gerar áudio usando a API do Google Translate (gratuita)
 async function generateAudio(text, language) {
     try {
-        const { elevenLabsApiKey } = await chrome.storage.sync.get('elevenLabsApiKey');
-        if (!elevenLabsApiKey) {
-            throw new Error('API key da ElevenLabs não configurada');
+        // Mapeia o código de idioma para o formato esperado pelo Google Translate
+        let googleLanguageCode = language;
+        if (language === 'zh') {
+            googleLanguageCode = 'zh-CN'; // Chinês simplificado
+        } else if (language === 'ja') {
+            googleLanguageCode = 'ja-JP'; // Japonês
         }
-
-        // Lista de vozes russas definida no escopo correto
-        const russianVoices = [
-            'kgF5UZYTYKw2W1SfEbTX', // Alice (russo)
-            'bVMeCyTHy58xNoL34h3p', // Sasha (russo)
-            'ThT5KcBeYPX3keUQqHPh', // Ivan (russo)
-            '0wkEYGF8lPXZKZHXmxZK'  // Natasha (russo)
-        ];
-
-        // Seleciona a voz apropriada baseado no idioma
-        let voiceId;
-        switch(language) {
-            case 'ja':
-                voiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam (japonês)
-                break;
-            case 'es':
-                voiceId = '29vD33N1CtxCmqQRPOHJ'; // Pedro (espanhol)
-                break;
-            case 'fr':
-                voiceId = 'XB0fDUnXU5powFXDhCwa'; // Charlotte (francês)
-                break;
-            case 'de':
-                voiceId = 'pqHfZKP75CvOlQylNhV4'; // Hans (alemão)
-                break;
-            case 'ru':
-                voiceId = russianVoices[0]; // Começa com a primeira voz
-                break;
-            case 'en':
-            default:
-                voiceId = '21m00Tcm4TlvDq8ikWAM'; // Rachel (inglês)
-                break;
-        }
-
-        // Configurações específicas para cada idioma
-        let stability = 0.5;
-        let similarity_boost = 0.75;
-
-        // Ajustes específicos para russo
-        if (language === 'ru') {
-            stability = 0.7; // Aumenta a estabilidade para melhor pronúncia
-            similarity_boost = 0.85; // Aumenta a similaridade para manter o sotaque
-        }
-
+        
         console.log('Gerando áudio para:', {
             text,
-            language,
-            voiceId,
-            stability,
-            similarity_boost
+            language: googleLanguageCode
         });
-
-        // Tenta gerar o áudio com a primeira voz
-        let response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-            method: 'POST',
-            headers: {
-                'Accept': 'audio/mpeg',
-                'Content-Type': 'application/json',
-                'xi-api-key': elevenLabsApiKey
-            },
-            body: JSON.stringify({
-                text: text,
-                model_id: 'eleven_multilingual_v2',
-                voice_settings: {
-                    stability,
-                    similarity_boost
-                }
-            })
+        
+        // Em vez de fazer a solicitação diretamente, enviamos para o background script
+        const response = await chrome.runtime.sendMessage({
+            action: 'fetchAudio',
+            url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${googleLanguageCode}&client=tw-ob`
         });
-
-        // Se a primeira voz falhar e for russo, tenta as outras vozes
-        if (!response.ok && language === 'ru') {
-            console.log('Primeira voz falhou, tentando vozes alternativas...');
-            
-            for (let i = 1; i < russianVoices.length; i++) {
-                voiceId = russianVoices[i];
-                console.log('Tentando voz alternativa:', voiceId);
-                
-                response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'audio/mpeg',
-                        'Content-Type': 'application/json',
-                        'xi-api-key': elevenLabsApiKey
-                    },
-                    body: JSON.stringify({
-                        text: text,
-                        model_id: 'eleven_multilingual_v2',
-                        voice_settings: {
-                            stability,
-                            similarity_boost
-                        }
-                    })
-                });
-
-                if (response.ok) {
-                    console.log('Voz alternativa funcionou:', voiceId);
-                    break;
-                } else {
-                    const errorData = await response.text();
-                    console.log(`Erro com voz ${voiceId}:`, errorData);
-                }
-            }
+        
+        if (!response || response.error) {
+            throw new Error(response ? response.error : 'Falha ao buscar áudio');
         }
-
-        if (!response.ok) {
-            const errorData = await response.text();
-            console.error('Erro detalhado da API ElevenLabs:', errorData);
-            throw new Error(`Erro ao gerar áudio (${response.status}): ${errorData}`);
-        }
-
-        const audioBlob = await response.blob();
-        const audioBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(audioBlob);
-        });
-
-        return audioBase64;
+        
+        return response.audioBase64;
     } catch (error) {
         console.error('Erro ao gerar áudio:', error);
-        throw error;
+        return null;
     }
 }
 

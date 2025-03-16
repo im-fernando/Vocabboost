@@ -454,10 +454,7 @@ async function addCardToAnki(word, translationResult, language, deckName) {
     let mainAudioBase64 = null;
     try {
       showStatus(`Gerando áudio para: ${word}...`, 'warning');
-      const { elevenLabsApiKey } = await chrome.storage.sync.get('elevenLabsApiKey');
-      if (elevenLabsApiKey) {
-        mainAudioBase64 = await generateAudio(word, language, elevenLabsApiKey);
-      }
+      mainAudioBase64 = await generateAudio(word, language);
     } catch (error) {
       console.warn('Erro ao gerar áudio principal:', error);
     }
@@ -472,15 +469,12 @@ async function addCardToAnki(word, translationResult, language, deckName) {
         
         showStatus(`Gerando áudio para exemplo ${i + 1} de ${examples.length}...`, 'warning');
         
-        const { elevenLabsApiKey } = await chrome.storage.sync.get('elevenLabsApiKey');
-        if (elevenLabsApiKey) {
-          const audioBase64 = await generateAudio(originalText, language, elevenLabsApiKey);
-          if (audioBase64) {
-            exampleAudios.push({
-              text: originalText,
-              audio: audioBase64
-            });
-          }
+        const audioBase64 = await generateAudio(originalText, language);
+        if (audioBase64) {
+          exampleAudios.push({
+            text: originalText,
+            audio: audioBase64
+          });
         }
       } catch (error) {
         console.warn(`Erro ao gerar áudio do exemplo ${i + 1}:`, error);
@@ -600,76 +594,33 @@ function getTheme(isDark) {
   };
 }
 
-// Função para gerar áudio usando ElevenLabs API
-async function generateAudio(text, language, apiKey) {
+// Função para gerar áudio usando Google Translate API (gratuita)
+async function generateAudio(text, language) {
   try {
-    // Lista de vozes para diferentes idiomas
-    let voiceId;
-    switch(language) {
-      case 'ja':
-        voiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam (japonês)
-        break;
-      case 'es':
-        voiceId = '29vD33N1CtxCmqQRPOHJ'; // Pedro (espanhol)
-        break;
-      case 'fr':
-        voiceId = 'XB0fDUnXU5powFXDhCwa'; // Charlotte (francês)
-        break;
-      case 'de':
-        voiceId = 'pqHfZKP75CvOlQylNhV4'; // Hans (alemão)
-        break;
-      case 'ru':
-        voiceId = 'kgF5UZYTYKw2W1SfEbTX'; // Alice (russo)
-        break;
-      case 'zh':
-        voiceId = 'zhiAM6ThQpJAXvZkXjXQ'; // Chinese voice
-        break;
-      case 'en':
-      default:
-        voiceId = '21m00Tcm4TlvDq8ikWAM'; // Rachel (inglês)
-        break;
-    }
-
-    // Configurações para melhor qualidade
-    const stability = 0.5;
-    const similarity_boost = 0.75;
-
     console.log(`Gerando áudio para: ${text} (${language})`);
-
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': apiKey
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability,
-          similarity_boost
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Erro detalhado da API ElevenLabs:', errorData);
-      throw new Error(`Erro ao gerar áudio (${response.status}): ${errorData}`);
+    
+    // Mapeia o código de idioma para o formato esperado pelo Google Translate
+    let googleLanguageCode = language;
+    if (language === 'zh') {
+      googleLanguageCode = 'zh-CN'; // Chinês simplificado
+    } else if (language === 'ja') {
+      googleLanguageCode = 'ja-JP'; // Japonês
     }
-
-    const audioBlob = await response.blob();
-    const audioBase64 = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(audioBlob);
+    
+    // Em vez de fazer a solicitação diretamente, enviamos para o background script
+    const response = await chrome.runtime.sendMessage({
+      action: 'fetchAudio',
+      url: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${googleLanguageCode}&client=tw-ob`
     });
-
-    return audioBase64;
+    
+    if (!response || response.error) {
+      throw new Error(response ? response.error : 'Falha ao buscar áudio');
+    }
+    
+    return response.audioBase64;
   } catch (error) {
     console.error('Erro ao gerar áudio:', error);
-    throw error;
+    return null;
   }
 }
 

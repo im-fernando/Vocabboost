@@ -1,11 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // Carrega as configurações salvas
-    chrome.storage.sync.get(['geminiApiKey', 'elevenLabsApiKey', 'darkMode'], (result) => {
+    chrome.storage.sync.get(['geminiApiKey', 'darkMode'], (result) => {
         if (result.geminiApiKey) {
             document.getElementById('apiKey').value = result.geminiApiKey;
-        }
-        if (result.elevenLabsApiKey) {
-            document.getElementById('elevenLabsApiKey').value = result.elevenLabsApiKey;
         }
         if (result.darkMode) {
             document.getElementById('darkMode').checked = result.darkMode;
@@ -23,7 +20,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Salva as configurações quando o botão for clicado
     document.getElementById('save').addEventListener('click', () => {
         const apiKey = document.getElementById('apiKey').value.trim();
-        const elevenLabsApiKey = document.getElementById('elevenLabsApiKey').value.trim();
         const darkMode = document.getElementById('darkMode').checked;
         const status = document.getElementById('status');
         
@@ -32,14 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        if (!elevenLabsApiKey) {
-            showStatus('Por favor, insira uma API key válida da ElevenLabs', 'error');
-            return;
-        }
-
         chrome.storage.sync.set({ 
             geminiApiKey: apiKey,
-            elevenLabsApiKey: elevenLabsApiKey,
             darkMode: darkMode
         }, () => {
             showStatus('Configurações salvas com sucesso!', 'success');
